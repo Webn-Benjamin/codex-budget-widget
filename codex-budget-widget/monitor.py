@@ -79,9 +79,10 @@ def main():
                 return
             # Wake at midnight to delimit the next day's observations as closely as possible.
             from datetime import datetime, timedelta, time as daytime
-            from budget import ZONE
-            now = datetime.now(ZONE)
-            next_day = datetime.combine(now.date() + timedelta(days=1), daytime(), ZONE).timestamp()
+            from budget import local_zone
+            zone = local_zone()
+            now = datetime.now(zone)
+            next_day = datetime.combine(now.date() + timedelta(days=1), daytime(), zone).timestamp()
             deadline = time.monotonic() + min(delay, max(1, next_day - time.time()))
             while time.monotonic() < deadline:
                 if parent and kernel.WaitForSingleObject(parent, 0) == 0:

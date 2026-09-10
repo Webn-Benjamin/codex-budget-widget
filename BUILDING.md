@@ -2,7 +2,7 @@
 
 ## English
 
-The repository contains the Windows widget, a separate on-demand Codex plugin and the unsigned Windows installer (v1.0.1). Personal usage history is never included.
+The repository contains the Windows widget, a separate on-demand Codex plugin and the unsigned Windows installer (v1.0.2). Personal usage history is never included.
 
 On Windows with Python 3.12 and Inno Setup 6.7.3 installed:
 
@@ -10,9 +10,9 @@ On Windows with Python 3.12 and Inno Setup 6.7.3 installed:
 py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements-build.txt
 cd codex-budget-widget
-..\.venv\Scripts\python.exe -m unittest test_budget -v
+..\.venv\Scripts\python.exe -m unittest discover -p "test_*.py" -v
 powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File test_apply.ps1
-..\.venv\Scripts\python.exe -m PyInstaller --noconfirm --onefile --noconsole --name BudgetMonitor --distpath bin --collect-all tzdata monitor.py
+..\.venv\Scripts\python.exe -m PyInstaller --noconfirm --onefile --noconsole --name BudgetMonitor --distpath bin --collect-all tzdata --collect-all tzlocal monitor.py
 & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\BudgetCodex.iss
 (Get-FileHash dist\Budget-Codex-Setup.exe -Algorithm SHA256).Hash.ToLowerInvariant() + '  Budget-Codex-Setup.exe' | Set-Content dist\SHA256SUMS.txt -Encoding ascii
 ```
@@ -25,7 +25,7 @@ Installer compiler: https://jrsoftware.org/isdl.php. The compiler is not bundled
 
 ## Français
 
-Le dépôt contient le widget Windows, le plugin Codex à la demande et l’installateur Windows non signé (v1.0.1). Aucun historique personnel n’est publié.
+Le dépôt contient le widget Windows, le plugin Codex à la demande et l’installateur Windows non signé (v1.0.2). Aucun historique personnel n’est publié.
 
 Les commandes ci-dessus installent les dépendances dans un environnement Python 3.12, exécutent les tests, reconstruisent le suivi puis l’installateur. Adaptez le chemin d’Inno Setup à votre installation.
 

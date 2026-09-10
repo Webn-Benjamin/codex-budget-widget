@@ -1,7 +1,12 @@
 import unittest
 import random
 from datetime import datetime
-from budget import calculate, parse, ZONE, schedule, validate_workdays
+from budget import calculate as calculate_in_zone, parse, schedule, validate_workdays
+from zoneinfo import ZoneInfo
+ZONE = ZoneInfo('Europe/Paris')
+
+def calculate(rows, workdays=None):
+    return calculate_in_zone(rows, workdays, zone=ZONE)
 
 def ts(day, hour=12):
     return datetime(2026, 9, day, hour, tzinfo=ZONE).timestamp()

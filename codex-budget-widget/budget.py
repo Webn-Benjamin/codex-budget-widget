@@ -8,7 +8,12 @@ from zoneinfo import ZoneInfo
 
 if not getattr(sys, 'frozen', False):
     sys.path.insert(0, str(Path(__file__).resolve().parent / 'vendor'))
-ZONE = ZoneInfo('Europe/Paris')
+from tzlocal import reload_localzone
+
+
+def local_zone():
+    # Reload so a Windows time-zone change takes effect without restarting.
+    return reload_localzone()
 DEFAULT_WORKDAYS = [0, 1, 2, 3, 4]
 
 
@@ -20,11 +25,12 @@ def validate_workdays(days):
 
 def schedule(start, reset, workdays):
     """A selected civil day has a full daily target; the real quota caps spending."""
+    zone = start.tzinfo
     allowances = {}
     day = start.date()
     while day <= reset.date():
-        begin = datetime.combine(day, daytime(), ZONE).timestamp()
-        end = datetime.combine(day + timedelta(days=1), daytime(), ZONE).timestamp()
+        begin = datetime.combine(day, daytime(), zone).timestamp()
+        end = datetime.combine(day + timedelta(days=1), daytime(), zone).timestamp()
         overlap = max(0, min(end, reset.timestamp()) - max(begin, start.timestamp()))
         if day.weekday() in workdays and overlap:
             allowances[day] = 100 / len(workdays)
@@ -52,7 +58,8 @@ def parse(payload, now):
                 at=now, reset=reset, used=used)
 
 
-def calculate(rows, workdays=None):
+def calculate(rows, workdays=None, zone=None):
+    zone = local_zone() if zone is None else zone
     workdays = validate_workdays(DEFAULT_WORKDAYS if workdays is None else workdays)
     current = rows[-1]
     rows = [r for r in rows if r['account'] == current['account'] and r['reset'] == current['reset']]
@@ -62,9 +69,9 @@ def calculate(rows, workdays=None):
             rows = rows[i:]
             revised = True
             break
-    now = datetime.fromtimestamp(current['at'], ZONE)
-    reset = datetime.fromtimestamp(current['reset'], ZONE)
-    start = datetime.fromtimestamp(current['reset'] - 604800, ZONE)
+    now = datetime.fromtimestamp(current['at'], zone)
+    reset = datetime.fromtimestamp(current['reset'], zone)
+    start = datetime.fromtimestamp(current['reset'] - 604800, zone)
     prior_days = max(0, (now.date() - start.date()).days)
     allowances = schedule(start, reset, workdays)
     cap = allowances.get(now.date(), 0)
@@ -81,7 +88,7 @@ def calculate(rows, workdays=None):
     previous_low, previous_high = 0, 0
     day = start.date()
     while day < now.date():
-        next_midnight = datetime.combine(day + timedelta(days=1), daytime(), ZONE).timestamp()
+        next_midnight = datetime.combine(day + timedelta(days=1), daytime(), zone).timestamp()
         end_low, end_high = boundary(next_midnight)
         spent_low = max(0, end_low - previous_high)
         spent_high = max(0, end_high - previous_low)
@@ -92,7 +99,7 @@ def calculate(rows, workdays=None):
         day += timedelta(days=1)
     if revised:
         # A quota revision invalidates all earlier daily deltas, including the first day.
-        previous_low, previous_high = boundary(datetime.combine(now.date(), daytime(), ZONE).timestamp())
+        previous_low, previous_high = boundary(datetime.combine(now.date(), daytime(), zone).timestamp())
         opening_low, opening_high = 0, sum(value for d, value in allowances.items() if d < now.date())
     today_low, today_high = used - previous_high, used - previous_low
     bonus_low = min(remaining, max(0, opening_low - max(0, today_high - cap)))
@@ -102,7 +109,7 @@ def calculate(rows, workdays=None):
     balance_known = math.isclose(balance_low, balance_high, abs_tol=1e-8)
     available = balance_low if balance_known else None
     days_left = sum(1 for day in allowances if day >= now.date())
-    return dict(updated=current['at'], used=used, remaining=100-used, available=available,
+    return dict(timezone=str(zone), updated=current['at'], used=used, remaining=100-used, available=available,
                 today_low=max(0, today_low), today_high=max(0, today_high),
                 bonus_low=bonus_low, bonus_high=bonus_high,
                 balance_known=balance_known,

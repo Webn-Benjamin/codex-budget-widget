@@ -185,7 +185,8 @@ $ui.SaveDays.Add_Click({
 })
 function Format-Points($value) { return ([double]$value).ToString('0.#',[Globalization.CultureInfo]::GetCultureInfo('fr-FR')) }
 function Get-PlanningBalance($s) {
- $zone=[TimeZoneInfo]::FindSystemTimeZoneById('Romance Standard Time')
+ [TimeZoneInfo]::ClearCachedData()
+ $zone=[TimeZoneInfo]::Local
  $first=[TimeZoneInfo]::ConvertTime([DateTimeOffset]::FromUnixTimeSeconds([long]$s.reset-604800),$zone).Date
  $today=[TimeZoneInfo]::ConvertTime([DateTimeOffset]::FromUnixTimeSeconds([long]$s.updated),$zone).Date
  $count=0
@@ -207,7 +208,10 @@ function Show-State($s) {
  if ($null -ne $s.standard_cap) { $ui.Daily.Text="$(Format-Points $s.standard_cap) %" }
  if ($s.updated) {
   $ui.Weekly.Text="Quota hebdomadaire : $(Format-Points $s.remaining) % restants"
-  $ui.Reset.Text="Reset : $($s.reset_label) · Paris"
+  [TimeZoneInfo]::ClearCachedData()
+  $localReset=[TimeZoneInfo]::ConvertTime([DateTimeOffset]::FromUnixTimeSeconds([long]$s.reset),[TimeZoneInfo]::Local)
+  $ui.Reset.Text="Reset : $($localReset.ToString('dd/MM à HH:mm')) · heure locale"
+  $ui.Reset.ToolTip=[TimeZoneInfo]::Local.DisplayName
  }
  if (-not $fresh) {
   $ui.Used.Text='—'; $ui.Total.Text=' / —'; $ui.Bonus.Text='—'; $ui.Fill.Width=0
