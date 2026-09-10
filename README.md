@@ -5,15 +5,13 @@
 
 [English](#english) · [Français](#français)
 
-![Budget Codex widget with settings open / Widget Budget Codex avec les réglages ouverts](docs/images/widget-settings.png)
+| Français | English |
+| :---: | :---: |
+| <img src="docs/images/widget-settings.png" alt="Widget en français avec les réglages ouverts" width="300"> | <img src="docs/images/widget-settings-en.png" alt="English widget with settings open" width="300"> |
 
-*Demo figures · Chiffres de démonstration*
+*Demo figures: 5 working days = 20% per day. / Démonstration : 5 jours travaillés = 20 % par jour.*
 
 ## English
-
-![English interface with settings open](docs/images/widget-settings-en.png)
-
-*Demo figures.*
 
 Budget Codex is a small Windows desktop widget that helps you plan your Codex usage until the next weekly reset. Choose your working days and keep your daily budget, carryover and remaining weekly quota in view.
 
