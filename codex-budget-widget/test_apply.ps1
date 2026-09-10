@@ -1,5 +1,5 @@
-$ErrorActionPreference='Stop'
-. "$PSScriptRoot\widget.ps1" -Preview -PreviewState settings
+﻿$ErrorActionPreference='Stop'
+. "$PSScriptRoot\widget.ps1" -Preview -PreviewState settings -Language fr
 $dataDir=Join-Path ([IO.Path]::GetTempPath()) ('BudgetCodex-Apply-'+[Guid]::NewGuid().ToString('N'))
 [IO.Directory]::CreateDirectory($dataDir)|Out-Null
 $workdaysFile=Join-Path $dataDir 'workdays.json'

@@ -11,6 +11,10 @@
 
 ## English
 
+![English interface with settings open](../docs/images/widget-settings-en.png)
+
+*Demo figures.*
+
 Budget Codex is a small Windows desktop widget that helps you plan your Codex usage until the next weekly reset. Choose your working days and keep your daily budget, carryover and remaining weekly quota in view.
 
 ### At a glance
@@ -35,7 +39,7 @@ This build is not code-signed, so Windows may display a publisher or reputation 
 
 Drag the header to move the widget. You can keep it on top of other windows, minimize it or close it. Your schedule, history and position are saved. It does not start automatically with Windows.
 
-**The widget interface is currently in French.** This guide is available in both languages.
+**Choose FR or EN beside the settings button.** The interface switches immediately and remembers your choice. On first launch it follows your Windows language (French or English).
 
 ### Understanding your budget
 
@@ -78,6 +82,8 @@ L’installateur utilise le français ou l’anglais selon Windows. Si Codex man
 Cette version n’est pas signée numériquement : Windows peut afficher un avertissement concernant l’éditeur ou la réputation du fichier. N’ouvrez que les installateurs provenant d’une source de confiance.
 
 Déplacez le widget par sa barre de titre. Vous pouvez le garder au premier plan, le réduire ou le fermer. Votre planning, votre historique et votre position sont conservés. Le lancement au démarrage de Windows n’est pas automatique.
+
+**Choisissez FR ou EN à côté du bouton des réglages.** La langue change immédiatement et votre choix est conservé. Au premier lancement, le widget suit la langue de Windows : français, ou anglais pour les autres langues.
 
 ### Comprendre les chiffres
 

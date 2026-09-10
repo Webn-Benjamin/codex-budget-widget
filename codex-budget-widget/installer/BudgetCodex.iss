@@ -1,4 +1,4 @@
-﻿#define Version "1.0.2"
+﻿#define Version "1.0.3"
 #ifdef TestBuild
  #define ProductName "Budget Codex Installer Test"
  #define ProductId "BudgetCodexInstallerTest"
@@ -46,11 +46,12 @@ Name: "french"; MessagesFile: "compiler:Languages\French.isl"
 
 [CustomMessages]
 english.Intro=Your daily Codex budget, always in view.
-english.Details=This will install Budget Codex, create desktop and Start menu shortcuts, and open the widget.%n%nYou need Codex installed and signed in. No Python or administrator access is required.%n%nUpdates preserve your history. The widget interface is currently in French.
+english.Details=This will install Budget Codex, create desktop and Start menu shortcuts, and open the widget.%n%nYou need Codex installed and signed in. No Python or administrator access is required.%n%nUpdates preserve your history. Choose French or English using FR / EN in the widget header.
 french.Intro=Votre budget Codex quotidien, toujours sous les yeux.
 french.Details=Budget Codex sera installé, un raccourci sera créé sur le bureau et dans le menu Démarrer, puis le widget sera ouvert.%n%nCodex doit être installé avec votre compte connecté. Aucun besoin de Python ni de droits administrateur.%n%nLes mises à jour conservent votre historique.
 
 [Files]
+Source: "..\i18n.ps1"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\widget.ps1"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\bin\BudgetMonitor.exe"; DestDir: "{app}\bin"; Flags: ignoreversion
 Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion

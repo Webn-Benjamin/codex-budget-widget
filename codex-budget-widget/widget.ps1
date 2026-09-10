@@ -1,8 +1,10 @@
-﻿param([switch]$Preview, [ValidateSet('live','normal','bonus','partial','offline','settings')][string]$PreviewState='live')
+﻿param([switch]$Preview, [ValidateSet('live','normal','bonus','partial','offline','settings')][string]$PreviewState='live', [ValidateSet('','fr','en')][string]$Language='')
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
 $dataDir = Join-Path $PSScriptRoot 'data'
 [IO.Directory]::CreateDirectory($dataDir) | Out-Null
+. (Join-Path $PSScriptRoot 'i18n.ps1')
+$script:language=Get-Language $Language
 $ownsMutex = $false
 $mutex = [Threading.Mutex]::new($true, 'Local\CodexBudgetWidget_v1', [ref]$ownsMutex)
 if (-not $ownsMutex -and -not $Preview) { $mutex.Dispose(); exit }
@@ -63,19 +65,23 @@ if (-not $ownsMutex -and -not $Preview) { $mutex.Dispose(); exit }
  <Border Background="#171B20" BorderBrush="#38414B" BorderThickness="1" CornerRadius="12">
   <StackPanel>
    <Grid x:Name="DragArea" Height="53" Background="Transparent" Margin="17,0,10,0">
-    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="32"/><ColumnDefinition Width="32"/><ColumnDefinition Width="32"/></Grid.ColumnDefinitions>
+    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="64"/><ColumnDefinition Width="32"/><ColumnDefinition Width="32"/><ColumnDefinition Width="32"/></Grid.ColumnDefinitions>
     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
      <Ellipse x:Name="ConnectionDot" Width="6" Height="6" Fill="#AFBBC8" Margin="0,0,9,0"/>
      <TextBlock Text="Codex" FontWeight="SemiBold" FontSize="14"/>
      <TextBlock Text=" / Budget" Foreground="#AFBBC8" FontSize="14"/>
     </StackPanel>
-    <Button x:Name="SettingsButton" Grid.Column="1" Style="{StaticResource ControlButton}" Height="30" Padding="6" ToolTip="Réglages" AutomationProperties.Name="Réglages">
+    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+     <Button x:Name="LangFR" Content="FR" Width="29" Height="27" FontSize="10" FontWeight="SemiBold" Padding="2" Style="{StaticResource ControlButton}" ToolTip="Français" AutomationProperties.Name="Français"/>
+     <Button x:Name="LangEN" Content="EN" Width="29" Height="27" FontSize="10" FontWeight="SemiBold" Padding="2" Style="{StaticResource ControlButton}" ToolTip="English" AutomationProperties.Name="English"/>
+    </StackPanel>
+    <Button x:Name="SettingsButton" Grid.Column="2" Style="{StaticResource ControlButton}" Height="30" Padding="6" ToolTip="Réglages" AutomationProperties.Name="Réglages">
      <Path Width="16" Height="16" Stretch="Uniform" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.5" Data="M 1,4 L 15,4 M 1,12 L 15,12 M 5,1 L 5,7 M 11,9 L 11,15"/>
     </Button>
-    <Button x:Name="Minimize" Grid.Column="2" Style="{StaticResource ControlButton}" Height="30" Padding="6" ToolTip="Réduire" AutomationProperties.Name="Réduire">
+    <Button x:Name="Minimize" Grid.Column="3" Style="{StaticResource ControlButton}" Height="30" Padding="6" ToolTip="Réduire" AutomationProperties.Name="Réduire">
      <Path Width="12" Height="12" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.5" Data="M 1,7 L 11,7"/>
     </Button>
-    <Button x:Name="Close" Grid.Column="3" Style="{StaticResource ControlButton}" Height="30" Padding="6" ToolTip="Fermer" AutomationProperties.Name="Fermer">
+    <Button x:Name="Close" Grid.Column="4" Style="{StaticResource ControlButton}" Height="30" Padding="6" ToolTip="Fermer" AutomationProperties.Name="Fermer">
      <Path Width="12" Height="12" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.5" Data="M 2,2 L 10,10 M 10,2 L 2,10"/>
     </Button>
    </Grid>
@@ -96,13 +102,13 @@ if (-not $ownsMutex -and -not $Preview) { $mutex.Dispose(); exit }
     <Border Height="1" Background="#303842" Margin="0,10,0,14"/>
     <Grid>
      <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="1"/><ColumnDefinition/></Grid.ColumnDefinitions>
-     <StackPanel><TextBlock Text="Par jour" Foreground="#AFBBC8"/><TextBlock x:Name="Daily" Text="—" FontSize="24" FontWeight="SemiBold" Margin="0,2,0,0"/></StackPanel>
+     <StackPanel><TextBlock x:Name="DailyLabel" Text="Par jour" Foreground="#AFBBC8"/><TextBlock x:Name="Daily" Text="—" FontSize="24" FontWeight="SemiBold" Margin="0,2,0,0"/></StackPanel>
      <Border Grid.Column="1" Background="#303842" Margin="0,2,0,2"/>
-     <StackPanel Grid.Column="2" Margin="20,0,0,0"><TextBlock Text="Bonus" Foreground="#AFBBC8"/><TextBlock x:Name="Bonus" Text="—" FontSize="24" FontWeight="SemiBold" Foreground="#F0CA8D" Margin="0,2,0,0" ToolTip="Bonus reporté encore disponible. Le total du jour inclut le bonus du début de journée."/></StackPanel>
+     <StackPanel Grid.Column="2" Margin="20,0,0,0"><TextBlock x:Name="BonusLabel" Text="Bonus" Foreground="#AFBBC8"/><TextBlock x:Name="Bonus" Text="—" FontSize="24" FontWeight="SemiBold" Foreground="#F0CA8D" Margin="0,2,0,0" ToolTip="Bonus reporté encore disponible. Le total du jour inclut le bonus du début de journée."/></StackPanel>
     </Grid>
    </StackPanel>
    <Border BorderBrush="#303842" BorderThickness="0,1,0,0" Margin="22,12,22,0" Padding="0,9,0,0">
-    <DockPanel><TextBlock Text="Quota global restant" Foreground="#AFBBC8" VerticalAlignment="Center"/><TextBlock x:Name="GlobalRemaining" Text="— / 100 %" HorizontalAlignment="Right" FontSize="18" FontWeight="SemiBold"/></DockPanel>
+    <DockPanel><TextBlock x:Name="GlobalLabel" Text="Quota global restant" Foreground="#AFBBC8" VerticalAlignment="Center"/><TextBlock x:Name="GlobalRemaining" Text="— / 100 %" HorizontalAlignment="Right" FontSize="18" FontWeight="SemiBold"/></DockPanel>
    </Border>
    <Grid Margin="17,9,15,7" Height="25">
     <TextBlock x:Name="Status" Text="Connexion…" Foreground="#AFBBC8" FontSize="10" VerticalAlignment="Center"/>
@@ -110,7 +116,7 @@ if (-not $ownsMutex -and -not $Preview) { $mutex.Dispose(); exit }
    </Grid>
    <Border x:Name="SettingsPanel" Visibility="Collapsed" BorderBrush="#303842" BorderThickness="0,1,0,0" Padding="20,15,20,16">
     <StackPanel>
-     <DockPanel><TextBlock Text="Jours travaillés" FontWeight="SemiBold" VerticalAlignment="Center"/><Button x:Name="SaveDays" Content="Appliquer" HorizontalAlignment="Right" Style="{StaticResource ControlButton}" Background="#303842"/></DockPanel>
+     <DockPanel><TextBlock x:Name="DaysLabel" Text="Jours travaillés" FontWeight="SemiBold" VerticalAlignment="Center"/><Button x:Name="SaveDays" Content="Appliquer" HorizontalAlignment="Right" Style="{StaticResource ControlButton}" Background="#303842"/></DockPanel>
      <UniformGrid x:Name="Workdays" Columns="7" Margin="0,12,0,16"/>
      <CheckBox x:Name="Pin" Content="Toujours au premier plan" IsChecked="True" Foreground="#F4F7FA"/>
      <TextBlock x:Name="Weekly" Text="Quota hebdomadaire : —" Foreground="#AFBBC8" Margin="0,15,0,4"/>
@@ -123,7 +129,7 @@ if (-not $ownsMutex -and -not $Preview) { $mutex.Dispose(); exit }
 '@
 $window = [Windows.Markup.XamlReader]::Load([Xml.XmlNodeReader]::new($xaml))
 $ui = @{}
-'UsageLabel','GlobalRemaining','DragArea','ConnectionDot','SettingsButton','Minimize','Close','Date','Used','Total','Track','Fill','Context','Daily','Bonus','Status','Refresh','SettingsPanel','SaveDays','Workdays','Pin','Weekly','Reset' | ForEach-Object { $ui[$_] = $window.FindName($_) }
+'LangFR','LangEN','DailyLabel','BonusLabel','GlobalLabel','DaysLabel','UsageLabel','GlobalRemaining','DragArea','ConnectionDot','SettingsButton','Minimize','Close','Date','Used','Total','Track','Fill','Context','Daily','Bonus','Status','Refresh','SettingsPanel','SaveDays','Workdays','Pin','Weekly','Reset' | ForEach-Object { $ui[$_] = $window.FindName($_) }
 $window.Left = [Math]::Max(0, [Windows.SystemParameters]::WorkArea.Right - 380)
 $window.Top = [Math]::Max(0, [Windows.SystemParameters]::WorkArea.Bottom - 398)
 $settings = Join-Path $dataDir 'window.json'
@@ -147,7 +153,7 @@ $ui.SettingsButton.Add_Click({
 })
 $window.Add_KeyDown({ if ($_.Key -eq 'Escape' -and $ui.SettingsPanel.Visibility -eq 'Visible') { $ui.SettingsPanel.Visibility='Collapsed'; $window.Height=378; $_.Handled=$true } })
 $ui.Pin.Add_Click({ $window.Topmost = [bool]$ui.Pin.IsChecked })
-$ui.Refresh.Add_Click({ [IO.File]::WriteAllText((Join-Path $dataDir 'refresh'), '') })
+$ui.Refresh.Add_Click({ try { [IO.File]::WriteAllText((Join-Path $dataDir 'refresh'), '') } catch { $ui.Context.Text=(T 'Données indisponibles · nouvelle tentative automatique') } })
 $workdaysFile = Join-Path $dataDir 'workdays.json'
 $chosenDays = @(0,1,2,3,4)
 if (Test-Path -LiteralPath $workdaysFile) { try { $chosenDays=@((Get-Content -LiteralPath $workdaysFile -Raw -Encoding UTF8 | ConvertFrom-Json).workdays) } catch { } }
@@ -160,7 +166,7 @@ for ($i=0;$i -lt 7;$i++) {
 $script:pendingDays = $null
 $ui.SaveDays.Add_Click({
  $selected=@($dayBoxes | Where-Object { $_.IsChecked } | ForEach-Object { [int]$_.Tag })
- if ($selected.Count -eq 0) { $ui.Context.Text='Choisis au moins un jour travaillé.'; return }
+ if ($selected.Count -eq 0) { $ui.Context.Text=(T (T "Choisis au moins un jour travaillé.")); return }
  if (($selected -join ',') -eq ($chosenDays -join ',')) {
   $ui.SettingsPanel.Visibility='Collapsed'; $window.Height=378
   return
@@ -174,16 +180,16 @@ $ui.SaveDays.Add_Click({
   $script:pendingDays = $selected -join ','
   [IO.File]::WriteAllText((Join-Path $dataDir 'refresh'),'')
   $ui.SettingsPanel.Visibility='Collapsed'; $window.Height=378
-  $ui.Total.Text=' / —'; $ui.Fill.Width=0; $ui.Context.Text='Planning enregistré · recalcul en cours…'
+  $ui.Total.Text=' / —'; $ui.Fill.Width=0; $ui.Context.Text=(T (T "Planning enregistré · recalcul en cours…"))
   $ui.Context.ToolTip=$null
  } catch {
-  $ui.Context.Text='Enregistrement impossible · réessaie dans un instant.'
-  $ui.Context.ToolTip=$_.Exception.Message
+  $ui.Context.Text=(T (T "Enregistrement impossible · réessaie dans un instant."))
+  $ui.Context.ToolTip=(T "Enregistrement impossible · réessaie dans un instant.")
  } finally {
   if (Test-Path -LiteralPath $tempConfig) { Remove-Item -LiteralPath $tempConfig -ErrorAction SilentlyContinue }
  }
 })
-function Format-Points($value) { return ([double]$value).ToString('0.#',[Globalization.CultureInfo]::GetCultureInfo('fr-FR')) }
+function Format-Points($value) { return ([double]$value).ToString('0.#',(Get-DisplayCulture)) }
 function Get-PlanningBalance($s) {
  [TimeZoneInfo]::ClearCachedData()
  $zone=[TimeZoneInfo]::Local
@@ -197,27 +203,28 @@ function Get-PlanningBalance($s) {
  return [Math]::Min([double]$s.remaining,[Math]::Max(0.0,$unlocked-[double]$s.used))
 }
 function Show-State($s) {
+ $script:lastState=$s
  $epoch=[DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
  $fresh=$s.ok -and $s.updated -and ($epoch-$s.updated -le 150) -and ($s.reset -gt $epoch)
  if ($null -ne $script:pendingDays) {
   if (($s.workdays -join ',') -eq $script:pendingDays) { $script:pendingDays=$null } else { return }
  }
- $ui.UsageLabel.Text="Utilisé aujourd’hui"
- $ui.GlobalRemaining.Text=if ($fresh) { ([double]$s.remaining).ToString('0.############',[Globalization.CultureInfo]::GetCultureInfo('fr-FR'))+' / 100 %' } else { '— / 100 %' }
+ $ui.UsageLabel.Text=(T "Utilisé aujourd’hui")
+ $ui.GlobalRemaining.Text=if ($fresh) { ([double]$s.remaining).ToString('0.############',(Get-DisplayCulture))+' / 100 %' } else { '— / 100 %' }
  $ui.Date.Text=$s.day
  if ($null -ne $s.standard_cap) { $ui.Daily.Text="$(Format-Points $s.standard_cap) %" }
  if ($s.updated) {
-  $ui.Weekly.Text="Quota hebdomadaire : $(Format-Points $s.remaining) % restants"
+  $ui.Weekly.Text=(T "Quota hebdomadaire : {0} % restants") -f (Format-Points $s.remaining)
   [TimeZoneInfo]::ClearCachedData()
   $localReset=[TimeZoneInfo]::ConvertTime([DateTimeOffset]::FromUnixTimeSeconds([long]$s.reset),[TimeZoneInfo]::Local)
-  $ui.Reset.Text="Reset : $($localReset.ToString('dd/MM à HH:mm')) · heure locale"
+  $ui.Reset.Text=(T "Reset : {0} · heure locale") -f $localReset.ToString("dd/MM HH:mm")
   $ui.Reset.ToolTip=[TimeZoneInfo]::Local.DisplayName
  }
  if (-not $fresh) {
   $ui.Used.Text='—'; $ui.Total.Text=' / —'; $ui.Bonus.Text='—'; $ui.Fill.Width=0
   $ui.Used.Foreground='#AFBBC8'; $ui.ConnectionDot.Fill='#F0CA8D'
-  $ui.Context.Text='Données indisponibles · nouvelle tentative automatique'
-  $ui.Context.ToolTip=$s.error; $ui.Status.Text='Hors ligne'; return
+  $ui.Context.Text=(T (T "Données indisponibles · nouvelle tentative automatique"))
+  $ui.Context.ToolTip=(T "Données indisponibles · nouvelle tentative automatique"); $ui.Status.Text=(T (T "Hors ligne")); return
  }
  $ui.Context.ToolTip=$null
  $knownBonus=[Math]::Abs($s.opening_bonus_low-$s.opening_bonus_high) -lt 0.000001
@@ -232,35 +239,38 @@ function Show-State($s) {
   $ui.Total.Text=" / $(Format-Points $total) %"
   $fraction=if ($total -gt 0) { [Math]::Min(1.0,[double]$s.today_low/[double]$total) } else { 0 }
   $ui.Fill.Width=312*$fraction
-  if ($s.available -le 0) { $ui.Used.Foreground='#F19D94'; $ui.Fill.Background='#F19D94'; $ui.Context.Text='Budget disponible épuisé pour ce jour' }
-  elseif ($fraction -ge .8) { $ui.Used.Foreground='#F0CA8D'; $ui.Fill.Background='#F0CA8D'; $ui.Context.Text='Bientôt la limite du jour · bonus inclus' }
-  else { $ui.Context.Text=if ($s.working_today) { 'Budget total du jour, bonus inclus' } else { 'Jour de repos · utilisation du bonus uniquement' } }
+  if ($s.available -le 0) { $ui.Used.Foreground='#F19D94'; $ui.Fill.Background='#F19D94'; $ui.Context.Text=(T (T "Budget disponible épuisé pour ce jour")) }
+  elseif ($fraction -ge .8) { $ui.Used.Foreground='#F0CA8D'; $ui.Fill.Background='#F0CA8D'; $ui.Context.Text=(T (T "Bientôt la limite du jour · bonus inclus")) }
+  else { $ui.Context.Text=if ($s.working_today) { (T (T "Budget total du jour, bonus inclus")) } else { (T (T "Jour de repos · utilisation du bonus uniquement")) } }
  } else {
   $planned=Get-PlanningBalance $s
   $plannedBonus=[Math]::Max(0.0,$planned-[double]$s.cap)
-  $ui.UsageLabel.Text="Disponible aujourd’hui"
+  $ui.UsageLabel.Text=(T "Disponible aujourd’hui")
   $ui.Used.Text="$(Format-Points $planned) %"
   $ui.Total.Text=''
   $ui.Bonus.Text="+$(Format-Points $plannedBonus) %"
   $ui.Fill.Width=312*[Math]::Min(1.0,$planned/[Math]::Max(0.000001,[double]$s.cap+$plannedBonus))
-  $ui.Context.Text='Solde du planning − consommation globale'
-  $ui.Context.ToolTip='Budget débloqué depuis le reset selon les jours cochés, moins toute la consommation du cycle. Le détail consommé depuis minuit reste inconnu.'
+  $ui.Context.Text=(T (T "Solde du planning − consommation globale"))
+  $ui.Context.ToolTip=(T (T "Budget débloqué depuis le reset selon les jours cochés, moins toute la consommation du cycle. Le détail consommé depuis minuit reste inconnu."))
  }
  $time=[DateTimeOffset]::FromUnixTimeSeconds([long]$s.updated).ToLocalTime().ToString('HH:mm')
- $ui.Status.Text="Mis à jour à $time · toutes les minutes"
+ $ui.Status.Text=(T "Mis à jour à {0} · toutes les minutes") -f $time
 }
 function Update-Widget {
  $file=Join-Path $dataDir 'status.json'
  if (Test-Path -LiteralPath $file) { try { $s=Get-Content -LiteralPath $file -Raw -Encoding UTF8|ConvertFrom-Json } catch { return }; Show-State $s }
 }
+$ui.LangFR.Add_Click({ Set-Language 'fr' -Persist })
+$ui.LangEN.Add_Click({ Set-Language 'en' -Persist })
 $timer=[Windows.Threading.DispatcherTimer]::new(); $timer.Interval=[TimeSpan]::FromSeconds(2); $timer.Add_Tick({ Update-Widget })
 if (-not $Preview) {
  $exe=Join-Path $PSScriptRoot 'bin\BudgetMonitor.exe'
- if (-not (Test-Path -LiteralPath $exe)) { throw 'BudgetMonitor.exe absent.' }
+ if (-not (Test-Path -LiteralPath $exe)) { throw (T (T "BudgetMonitor.exe absent.")) }
  Start-Process -FilePath $exe -ArgumentList @('--data',('"'+$dataDir+'"'),'--parent',$PID) -WindowStyle Hidden | Out-Null
 }
 $window.Add_Closed({ $timer.Stop(); if (-not $Preview) { @{left=$window.Left;top=$window.Top;pin=$window.Topmost}|ConvertTo-Json|Set-Content -LiteralPath $settings -Encoding UTF8 } })
 try {
+ Set-Language $script:language
  Update-Widget
  if ($Preview) {
   if ($PreviewState -ne 'live') {
@@ -274,6 +284,6 @@ try {
   $window.Show(); $window.UpdateLayout()
   $bitmap=[Windows.Media.Imaging.RenderTargetBitmap]::new([int]$window.ActualWidth,[int]$window.ActualHeight,96,96,[Windows.Media.PixelFormats]::Pbgra32); $bitmap.Render($window)
   $encoder=[Windows.Media.Imaging.PngBitmapEncoder]::new(); $encoder.Frames.Add([Windows.Media.Imaging.BitmapFrame]::Create($bitmap))
-  $stream=[IO.File]::Create((Join-Path $PSScriptRoot ("preview-$PreviewState.png"))); $encoder.Save($stream); $stream.Dispose(); $window.Close()
+  $stream=[IO.File]::Create((Join-Path $PSScriptRoot ("preview-$PreviewState-$script:language.png"))); $encoder.Save($stream); $stream.Dispose(); $window.Close()
  } else { $timer.Start(); $window.ShowDialog()|Out-Null }
 } finally { $timer.Stop(); if ($ownsMutex) { $mutex.ReleaseMutex() }; $mutex.Dispose() }

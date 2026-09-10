@@ -1,6 +1,7 @@
 ﻿$ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName PresentationFramework
 $french=[Globalization.CultureInfo]::CurrentUICulture.TwoLetterISOLanguageName -eq 'fr'
+try { $savedLanguage=(Get-Content (Join-Path $PSScriptRoot 'data\language.json') -Raw -Encoding UTF8 | ConvertFrom-Json).language; if ($savedLanguage -in @('fr','en')) { $french=$savedLanguage -eq 'fr' } } catch {}
 try {
  $codex=Get-Command codex.exe,codex -ErrorAction SilentlyContinue | Select-Object -First 1
  $bundled=@(Get-ChildItem -Path (Join-Path $env:LOCALAPPDATA 'OpenAI\Codex\bin\*\codex.exe') -ErrorAction SilentlyContinue)
