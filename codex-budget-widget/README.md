@@ -5,6 +5,10 @@
 
 [English](#english) · [Français](#français)
 
+![Budget Codex widget with settings open / Widget Budget Codex avec les réglages ouverts](../docs/images/widget-settings.png)
+
+*Demo figures · Chiffres de démonstration*
+
 ## English
 
 Budget Codex is a small Windows desktop widget that helps you plan your Codex usage until the next weekly reset. Choose your working days and keep your daily budget, carryover and remaining weekly quota in view.
