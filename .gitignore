@@ -1,0 +1,24 @@
+# Personal usage and settings
+**/data/
+**/history.json
+**/*.sqlite*
+**/*.db
+.env
+.env.*
+# Local runtimes, compiler and generated work
+**/__pycache__/
+*.py[cod]
+.venv/
+**/vendor/
+**/build/
+**/installer/tools/
+**/installer/qa-*/
+**/installer/*Test*Setup.exe
+*.log
+*.tmp
+*.bak
+widget.before-*.ps1
+widget-v2.ps1
+repro-*.ps1
+**/preview*.png
+# Release executables in bin/ and dist/ are intentionally distributed.

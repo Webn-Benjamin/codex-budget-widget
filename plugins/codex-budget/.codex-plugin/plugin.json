@@ -1,0 +1,18 @@
+{
+  "name": "codex-budget",
+  "version": "0.1.0",
+  "description": "Track your Codex usage and plan a daily budget on demand.",
+  "author": {
+    "name": "Webn-Benjamin"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Codex Budget",
+    "shortDescription": "Track your daily Codex budget.",
+    "longDescription": "Check observed usage and plan your remaining quota until the next weekly reset.",
+    "developerName": "Webn-Benjamin",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": "Show my Codex budget."
+  }
+}
