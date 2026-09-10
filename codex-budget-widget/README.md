@@ -7,9 +7,9 @@
 
 | Français | English |
 | :---: | :---: |
-| <img src="../docs/images/widget-settings.png" alt="Widget en français avec les réglages ouverts" width="300"> | <img src="../docs/images/widget-settings-en.png" alt="English widget with settings open" width="300"> |
+| <img src="../docs/images/widget-week-fr.png" alt="Widget en français avec les réglages ouverts" width="300"> | <img src="../docs/images/widget-week-en.png" alt="English widget with settings open" width="300"> |
 
-*Demo figures: 5 working days = 20% per day. / Démonstration : 5 jours travaillés = 20 % par jour.*
+*Demo figures: 7 working days = about 14.3% per day. / Démonstration : 7 jours travaillés = environ 14,3 % par jour.*
 
 ## English
 

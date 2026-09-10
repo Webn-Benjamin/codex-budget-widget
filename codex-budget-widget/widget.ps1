@@ -274,8 +274,8 @@ try {
  Update-Widget
  if ($Preview) {
   if ($PreviewState -ne 'live') {
-   $demo=[pscustomobject]@{ok=$true;updated=[DateTimeOffset]::UtcNow.ToUnixTimeSeconds();reset=[DateTimeOffset]::UtcNow.ToUnixTimeSeconds()+518400;standard_cap=20;cap=20;day='10/09';remaining=77;used=23;today_low=5;uncertain=$false;opening_bonus_low=2;opening_bonus_high=2;bonus_low=2;bonus_high=2;available=17;working_today=$true;reset_label='16/09 à 08:36';workdays=@(0,1,2,3,4)}
-   if ($PreviewState -eq 'bonus') { $demo.today_low=21; $demo.used=39; $demo.remaining=61; $demo.bonus_low=1; $demo.bonus_high=1; $demo.available=1 }
+   $demo=[pscustomobject]@{ok=$true;updated=[DateTimeOffset]::UtcNow.ToUnixTimeSeconds();reset=[DateTimeOffset]::UtcNow.ToUnixTimeSeconds()+518400;standard_cap=(100.0/7);cap=(100.0/7);day='10/09';remaining=77;used=23;today_low=5;uncertain=$false;opening_bonus_low=2;opening_bonus_high=2;bonus_low=2;bonus_high=2;available=(100.0/7+2-5);working_today=$true;reset_label='16/09 à 08:36';workdays=@(0,1,2,3,4,5,6)}
+   if ($PreviewState -eq 'bonus') { $demo.today_low=(100.0/7+1); $demo.used=39; $demo.remaining=61; $demo.bonus_low=1; $demo.bonus_high=1; $demo.available=1 }
    if ($PreviewState -eq 'partial') { $demo.uncertain=$true; $demo.today_low=1; $demo.opening_bonus_high=15; $demo.bonus_high=15 }
    if ($PreviewState -eq 'offline') { $demo.ok=$false }
    # Preview controls and figures share the same synthetic schedule, never personal settings.
