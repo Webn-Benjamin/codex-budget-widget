@@ -30,3 +30,10 @@ foreach ($model in @('codex','spark')) {
  Set-Language en
 }
 Write-Output 'PASS: CLI errors on first launch and language switch for both models.'
+
+Show-Envelope ([pscustomobject]@{ok=$false;error_code='wsl_login_required';source='WSL / Debian'})
+Assert ($ui.Context.Text -eq 'In WSL: run codex login') 'WSL login instruction missing'
+Assert ($ui.Status.ToolTip -eq 'WSL / Debian') 'WSL source missing'
+Set-Language fr
+Assert ($ui.Context.Text -eq 'Dans WSL : lancez codex login') 'French WSL instruction missing'
+Write-Output 'PASS: WSL login and source tooltip in FR/EN.'

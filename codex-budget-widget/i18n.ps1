@@ -1,5 +1,6 @@
 ﻿$script:english = @{
- "Codex absent · installez Codex ou son CLI"="Codex missing · install Codex or its CLI"
+ "Dans WSL : lancez codex login"="In WSL: run codex login"
+ "Codex absent · Windows ou WSL"="Codex missing · Windows or WSL"
  "Compte déconnecté · lancez codex login"="Signed out · run codex login"
  "Clé API · quota ChatGPT indisponible"="API key · ChatGPT quota unavailable"
  "Lecture impossible · vérifiez Codex et la connexion"="Cannot refresh · check Codex and connection"

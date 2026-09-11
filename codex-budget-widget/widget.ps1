@@ -222,6 +222,7 @@ function Get-PlanningBalance($s) {
 }
 function Show-State($s) {
  $script:lastState=$s
+ $ui.Status.ToolTip=$s.source
  Show-Short $s.short
  $epoch=[DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
  $fresh=$s.ok -and $s.updated -and ($epoch-$s.updated -le 150) -and ($s.reset -gt $epoch)
@@ -244,7 +245,8 @@ function Show-State($s) {
   $ui.Used.Text='—'; $ui.Total.Text=' / —'; $ui.Bonus.Text='—'; $ui.Fill.Width=0
   $ui.Used.Foreground='#AFBBC8'; $ui.ConnectionDot.Fill='#F0CA8D'
   $message=switch ($s.error_code) {
-   'codex_missing' { 'Codex absent · installez Codex ou son CLI' }
+   'codex_missing' { 'Codex absent · Windows ou WSL' }
+   'wsl_login_required' { 'Dans WSL : lancez codex login' }
    'login_required' { 'Compte déconnecté · lancez codex login' }
    'api_key' { 'Clé API · quota ChatGPT indisponible' }
    'read_failed' { 'Lecture impossible · vérifiez Codex et la connexion' }
@@ -329,8 +331,8 @@ function Show-Envelope($envelope) {
  $script:lastEnvelope=$envelope
  if ($null -ne $envelope.models) { $entry=$envelope.models.($script:model) }
  elseif ($script:model -eq 'codex') { $entry=$envelope }
- else { $entry=[pscustomobject]@{ok=$false;error_code=$envelope.error_code} }
- if ($null -eq $entry) { $entry=[pscustomobject]@{ok=$false;error_code=$envelope.error_code} }
+ else { $entry=[pscustomobject]@{ok=$false;error_code=$envelope.error_code;source=$envelope.source} }
+ if ($null -eq $entry) { $entry=[pscustomobject]@{ok=$false;error_code=$envelope.error_code;source=$envelope.source} }
  if (-not $entry.ok -and $null -ne $script:pendingDays) { $script:pendingDays=$null }
  Show-State $entry
 }

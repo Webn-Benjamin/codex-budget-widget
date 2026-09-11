@@ -7,6 +7,7 @@ import subprocess
 import threading
 import time
 import platform
+from wsl_client import find_wsl
 
 
 class ClientError(RuntimeError):
@@ -51,15 +52,23 @@ def find_codex():
 
 class Client:
     def __init__(self):
-        self.proc = subprocess.Popen([find_codex(), 'app-server', '--stdio'],
+        try:
+            command, self.source = [find_codex(), 'app-server', '--stdio'], 'Windows'
+        except ClientError:
+            found = find_wsl()
+            if found is None:
+                raise ClientError('codex_missing') from None
+            command, self.source = found
+        self.proc = subprocess.Popen(command,
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
             text=True, encoding='utf-8', creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
         self.messages = queue.Queue()
         self.counter = 0
-        threading.Thread(target=self._read, daemon=True).start()
+        self.reader = threading.Thread(target=self._read, daemon=True)
+        self.reader.start()
         try:
             self.call('initialize', {'clientInfo': {'name': 'codex_budget_widget',
-                'title': 'Budget Codex', 'version': '1.1.1'}})
+                'title': 'Budget Codex', 'version': '1.2.0'}})
             self._write({'method': 'initialized'})
         except Exception:
             self.close()
@@ -68,7 +77,9 @@ class Client:
     def _read(self):
         for line in self.proc.stdout:
             try:
-                self.messages.put(json.loads(line))
+                message = json.loads(line)
+                if isinstance(message, dict):
+                    self.messages.put(message)
             except ValueError:
                 continue
         self.messages.put(None)
@@ -103,18 +114,24 @@ class Client:
     def read_limits(self):
         account = self.call('account/read', {'refreshToken': False}).get('account')
         if account is None:
-            raise ClientError('login_required')
+            raise ClientError('wsl_login_required' if getattr(self, 'source', '').startswith('WSL / ') else 'login_required')
         if account.get('type') == 'apiKey':
             raise ClientError('api_key')
         return self.call('account/rateLimits/read')
 
     def close(self):
+        # EOF lets app-server exit inside WSL without terminating a distribution.
+        try:
+            self.proc.stdin.close()
+        except OSError:
+            pass
         if self.proc.poll() is None:
-            self.proc.terminate()
             try:
                 self.proc.wait(timeout=5)
             except subprocess.TimeoutExpired:
+                self.proc.terminate()
                 self.proc.kill()
                 self.proc.wait(timeout=5)
-        for pipe in (self.proc.stdin, self.proc.stdout):
-            pipe.close()
+        self.reader.join(timeout=1)
+        if not self.reader.is_alive():
+            self.proc.stdout.close()

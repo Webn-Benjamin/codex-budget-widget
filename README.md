@@ -29,9 +29,11 @@ Switch between **Codex** and **GPT-5.3-Codex-Spark** above the daily budget. You
 
 ### Codex CLI support
 
-The Windows Codex CLI is supported, including npm installations. The desktop Codex app is optional. Sign in using `codex login`, then open the widget. It reads account-wide quotas, so app and CLI usage on the same account are included together, not shown as separate counters. API-key billing is not tracked. WSL-only installations are not detected: install the Windows CLI and sign in to the same account.
+The Windows Codex CLI is supported, including npm installations. The desktop Codex app is optional. Sign in using `codex login`, then open the widget. It reads account-wide quotas, so app and CLI usage on the same account are included together, not shown as separate counters. API-key billing is not tracked. WSL-only installations are supported: if no Windows Codex executable is found, the widget searches installed Linux distributions (such as Debian or Ubuntu), skipping Docker distributions. It uses the first installation found and the distribution’s default Linux user. Sign in inside that distribution, for example with `wsl -d Debian` followed by `codex login`.
 
 Detection follows Windows PATH order (native executable or npm package), then the default user npm folder, then the desktop app bundle. The widget uses that installation's account and inherited `CODEX_HOME`; a different CLI profile may use a different account. After changing PATH, restart the widget; after signing in, click Refresh.
+
+WSL detection checks the Linux login PATH, common user installation folders and nvm. Hover over the connection status to see the source (Windows or WSL / distribution). Windows takes priority when both are installed; quotas are not merged across accounts. A WSL probe may start a stopped distribution. The widget closes its own server connection, without shutting down WSL. Custom users and multiple-account selection are not supported.
 
 ### Get started
 
@@ -83,9 +85,11 @@ Le sélecteur au-dessus du budget permet de choisir **Codex** ou **GPT-5.3-Codex
 
 ### Prise en charge du CLI Codex
 
-Le CLI Codex pour Windows est pris en charge, y compris les installations npm. L’application Codex est facultative. Connectez-vous avec `codex login`, puis ouvrez le widget. Les quotas couvrent le compte : les usages de l’application et du CLI sur le même compte sont inclus ensemble, sans compteurs séparés. La facturation par clé API n’est pas suivie. Les installations uniquement dans WSL ne sont pas détectées : installez le CLI Windows et connectez le même compte.
+Le CLI Codex pour Windows est pris en charge, y compris les installations npm. L’application Codex est facultative. Connectez-vous avec `codex login`, puis ouvrez le widget. Les quotas couvrent le compte : les usages de l’application et du CLI sur le même compte sont inclus ensemble, sans compteurs séparés. La facturation par clé API n’est pas suivie. Les installations uniquement dans WSL sont prises en charge : si aucun exécutable Codex Windows n’est trouvé, le widget cherche dans les distributions Linux installées (Debian, Ubuntu…), en ignorant celles de Docker. Il utilise la première installation trouvée et l’utilisateur Linux par défaut de la distribution. Connectez-vous dans cette distribution, par exemple avec `wsl -d Debian`, puis `codex login`.
 
 La détection suit l’ordre du PATH Windows (exécutable natif ou paquet npm), puis le dossier npm utilisateur par défaut, puis le binaire de l’application. Le widget utilise le compte de cette installation et le `CODEX_HOME` hérité ; un autre profil CLI peut utiliser un autre compte. Après modification du PATH, relancez le widget ; après connexion, cliquez sur Actualiser.
+
+La détection WSL vérifie le PATH de connexion Linux, les dossiers utilisateur habituels et nvm. Survolez l’état de connexion pour voir la source (Windows ou WSL / distribution). Windows reste prioritaire si les deux sont installés ; les quotas de comptes différents ne sont pas fusionnés. La recherche peut démarrer une distribution arrêtée. Le widget ferme sa propre connexion serveur sans arrêter WSL. Le choix d’un autre utilisateur Linux ou de plusieurs comptes n’est pas proposé.
 
 ### Bien démarrer
 

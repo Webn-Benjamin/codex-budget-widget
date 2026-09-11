@@ -76,6 +76,9 @@ def main():
                     client = Client()
                 payload = client.read_limits()
                 result = collect(args.data, payload, time.time())
+                result['source'] = client.source
+                for entry in result['models'].values():
+                    entry['source'] = client.source
                 atomic_json(status, result)
                 delay = 60
             except Exception as exc:
@@ -86,10 +89,11 @@ def main():
                     previous = {}
                 for entry in previous.get('models', {}).values():
                     entry['ok'] = False
+                    entry['source'] = client.source if client else None
                     entry['error_code'] = exc.code if isinstance(exc, ClientError) else 'read_failed'
                     if 'short' in entry:
                         entry['short']['ok'] = False
-                previous.update(ok=False, error_code=exc.code if isinstance(exc, ClientError) else 'read_failed', error=str(exc) if isinstance(exc, (ValueError, RuntimeError, TimeoutError))
+                previous.update(ok=False, source=client.source if client else None, error_code=exc.code if isinstance(exc, ClientError) else 'read_failed', error=str(exc) if isinstance(exc, (ValueError, RuntimeError, TimeoutError))
                                 else 'Actualisation impossible. Nouvelle tentative dans une minute.')
                 atomic_json(status, previous)
                 if client:
