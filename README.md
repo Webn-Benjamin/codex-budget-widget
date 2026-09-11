@@ -27,6 +27,12 @@ Switch between **Codex** and **GPT-5.3-Codex-Spark** above the daily budget. You
 - **Weekly quota:** see what remains out of **100%**, directly at the bottom of the widget.
 - **Automatic updates:** refreshes every minute while open, with a manual refresh button.
 
+### Codex CLI support
+
+The Windows Codex CLI is supported, including npm installations. The desktop Codex app is optional. Sign in using `codex login`, then open the widget. It reads account-wide quotas, so app and CLI usage on the same account are included together, not shown as separate counters. API-key billing is not tracked. WSL-only installations are not detected: install the Windows CLI and sign in to the same account.
+
+Detection follows Windows PATH order (native executable or npm package), then the default user npm folder, then the desktop app bundle. The widget uses that installation's account and inherited `CODEX_HOME`; a different CLI profile may use a different account. After changing PATH, restart the widget; after signing in, click Refresh.
+
 ### Get started
 
 You need Windows, Codex installed and signed in, and an account whose weekly usage limit is available to Codex.
@@ -35,7 +41,7 @@ You need Windows, Codex installed and signed in, and an account whose weekly usa
 2. Click **Install**. The installer adds desktop and Start menu shortcuts, then opens the widget. No commands, Python installation or administrator access are needed.
 3. Open **Réglages** (the sliders button), select your working days and click **Appliquer**.
 
-The installer uses English or French according to Windows. If Codex is missing, the launcher explains what to install first. To update, close the widget and run the new installer; your history is kept. To remove it, close the widget and uninstall **Budget Codex** from Windows Settings → Apps. Local history is retained for a future reinstall.
+The installer uses English or French according to Windows. If Codex is missing or signed out, the widget displays instructions and retries automatically. To update, close the widget and run the new installer; your history is kept. To remove it, close the widget and uninstall **Budget Codex** from Windows Settings → Apps. Local history is retained for a future reinstall.
 
 This build is not code-signed, so Windows may display a publisher or reputation warning. Only open installers obtained from a source you trust.
 
@@ -53,7 +59,7 @@ Figures follow the precision and refresh timing provided by Codex. Days and rese
 
 ### Your data
 
-History and preferences are stored locally in the widget’s `data` folder. Usage is read through your installed Codex application; the monitor does not make model requests. Monitoring pauses when the widget is closed or the PC sleeps. If a reading cannot be refreshed, the widget shows an offline state and retries automatically.
+History and preferences are stored locally in the widget’s `data` folder. Usage is read through your installed Codex executable (CLI or desktop bundle); the monitor does not make model requests. Monitoring pauses when the widget is closed or the PC sleeps. If a reading cannot be refreshed, the widget shows an offline state and retries automatically.
 
 Budget Codex is an independent project, not an official OpenAI product. It opens as a separate desktop window, rather than adding a panel inside Codex.
 
@@ -74,6 +80,12 @@ Le sélecteur au-dessus du budget permet de choisir **Codex** ou **GPT-5.3-Codex
 - **Bonus :** retrouvez le budget non utilisé reporté des jours précédents.
 - **Quota hebdomadaire :** consultez le restant sur **100 %**, directement en bas du widget.
 - **Actualisation automatique :** les données sont mises à jour chaque minute lorsque le widget est ouvert, ou avec le bouton **Actualiser**.
+
+### Prise en charge du CLI Codex
+
+Le CLI Codex pour Windows est pris en charge, y compris les installations npm. L’application Codex est facultative. Connectez-vous avec `codex login`, puis ouvrez le widget. Les quotas couvrent le compte : les usages de l’application et du CLI sur le même compte sont inclus ensemble, sans compteurs séparés. La facturation par clé API n’est pas suivie. Les installations uniquement dans WSL ne sont pas détectées : installez le CLI Windows et connectez le même compte.
+
+La détection suit l’ordre du PATH Windows (exécutable natif ou paquet npm), puis le dossier npm utilisateur par défaut, puis le binaire de l’application. Le widget utilise le compte de cette installation et le `CODEX_HOME` hérité ; un autre profil CLI peut utiliser un autre compte. Après modification du PATH, relancez le widget ; après connexion, cliquez sur Actualiser.
 
 ### Bien démarrer
 

@@ -1,4 +1,4 @@
-﻿#define Version "1.1.0"
+﻿#define Version "1.1.1"
 #ifdef TestBuild
  #define ProductName "Budget Codex Installer Test"
  #define ProductId "BudgetCodexInstallerTest"

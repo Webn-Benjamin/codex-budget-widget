@@ -243,8 +243,15 @@ function Show-State($s) {
  if (-not $fresh) {
   $ui.Used.Text='—'; $ui.Total.Text=' / —'; $ui.Bonus.Text='—'; $ui.Fill.Width=0
   $ui.Used.Foreground='#AFBBC8'; $ui.ConnectionDot.Fill='#F0CA8D'
-  $ui.Context.Text=(T (T "Données indisponibles · nouvelle tentative automatique"))
-  $ui.Context.ToolTip=(T "Données indisponibles · nouvelle tentative automatique"); $ui.Status.Text=(T (T "Hors ligne")); return
+  $message=switch ($s.error_code) {
+   'codex_missing' { 'Codex absent · installez Codex ou son CLI' }
+   'login_required' { 'Compte déconnecté · lancez codex login' }
+   'api_key' { 'Clé API · quota ChatGPT indisponible' }
+   'read_failed' { 'Lecture impossible · vérifiez Codex et la connexion' }
+   default { 'Données indisponibles · nouvelle tentative automatique' }
+  }
+  $ui.Context.Text=(T $message)
+  $ui.Context.ToolTip=(T $message); $ui.Status.Text=(T (T "Hors ligne")); return
  }
  $ui.Context.ToolTip=$null
  $knownBonus=[Math]::Abs($s.opening_bonus_low-$s.opening_bonus_high) -lt 0.000001
@@ -322,8 +329,8 @@ function Show-Envelope($envelope) {
  $script:lastEnvelope=$envelope
  if ($null -ne $envelope.models) { $entry=$envelope.models.($script:model) }
  elseif ($script:model -eq 'codex') { $entry=$envelope }
- else { $entry=[pscustomobject]@{ok=$false} }
- if ($null -eq $entry) { $entry=[pscustomobject]@{ok=$false} }
+ else { $entry=[pscustomobject]@{ok=$false;error_code=$envelope.error_code} }
+ if ($null -eq $entry) { $entry=[pscustomobject]@{ok=$false;error_code=$envelope.error_code} }
  if (-not $entry.ok -and $null -ne $script:pendingDays) { $script:pendingDays=$null }
  Show-State $entry
 }

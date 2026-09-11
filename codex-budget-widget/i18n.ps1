@@ -1,4 +1,8 @@
 ﻿$script:english = @{
+ "Codex absent · installez Codex ou son CLI"="Codex missing · install Codex or its CLI"
+ "Compte déconnecté · lancez codex login"="Signed out · run codex login"
+ "Clé API · quota ChatGPT indisponible"="API key · ChatGPT quota unavailable"
+ "Lecture impossible · vérifiez Codex et la connexion"="Cannot refresh · check Codex and connection"
  "Spark : limite 5 h atteinte · attendre le reset"="Spark: 5-hour limit reached · wait for reset"
  "Spark · 5 h restantes"="Spark · 5-hour quota left"
  "Limite 5 h indisponible"="5-hour limit unavailable"

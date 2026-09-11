@@ -3,20 +3,49 @@ import json
 import os
 from pathlib import Path
 import queue
-import shutil
 import subprocess
 import threading
 import time
+import platform
+
+
+class ClientError(RuntimeError):
+    def __init__(self, code):
+        self.code = code
+        super().__init__(code)
+
+
+def npm_binary(prefix):
+    """Resolve npm's native binary without executing cmd/PowerShell shims."""
+    arch = 'aarch64' if platform.machine().lower() in ('arm64', 'aarch64') else 'x86_64'
+    suffix = Path('vendor') / (arch + '-pc-windows-msvc') / 'codex' / 'codex.exe'
+    package = prefix / 'node_modules' / '@openai' / 'codex'
+    candidates = [package / suffix,
+                  prefix / 'node_modules' / '@openai' / ('codex-win32-' + ('arm64' if arch == 'aarch64' else 'x64')) / suffix,
+                  package / 'node_modules' / '@openai' / ('codex-win32-' + ('arm64' if arch == 'aarch64' else 'x64')) / suffix]
+    candidates = [variant for p in candidates for variant in (p.parent.parent / 'bin' / 'codex.exe', p)]
+    return next((str(p) for p in candidates if p.is_file()), None)
 
 
 def find_codex():
-    found = shutil.which('codex.exe') or shutil.which('codex')
-    if found:
-        return found
+    # Follow PATH order, including npm prefixes with only codex.cmd/codex.ps1.
+    for directory in os.get_exec_path():
+        if not directory:
+            continue
+        prefix = Path(directory)
+        if (prefix / 'codex.exe').is_file():
+            return str(prefix / 'codex.exe')
+        found = npm_binary(prefix)
+        if found:
+            return found
+    if os.environ.get('APPDATA'):
+        found = npm_binary(Path(os.environ['APPDATA']) / 'npm')
+        if found:
+            return found
     base = Path(os.environ.get('LOCALAPPDATA', '')) / 'OpenAI' / 'Codex' / 'bin'
     candidates = list(base.glob('*/codex.exe'))
     if not candidates:
-        raise RuntimeError('Codex introuvable. Ouvrir ou installer Codex.')
+        raise ClientError('codex_missing')
     return str(max(candidates, key=lambda p: p.stat().st_mtime))
 
 
@@ -30,7 +59,7 @@ class Client:
         threading.Thread(target=self._read, daemon=True).start()
         try:
             self.call('initialize', {'clientInfo': {'name': 'codex_budget_widget',
-                'title': 'Budget Codex', 'version': '1.0.0'}})
+                'title': 'Budget Codex', 'version': '1.1.1'}})
             self._write({'method': 'initialized'})
         except Exception:
             self.close()
@@ -49,7 +78,7 @@ class Client:
         self.proc.stdin.flush()
 
     def call(self, method, params=None):
-        if method not in ('initialize', 'account/rateLimits/read'):
+        if method not in ('initialize', 'account/read', 'account/rateLimits/read'):
             raise ValueError('Méthode non autorisée par ce client en lecture seule.')
         self.counter += 1
         request = {'id': self.counter, 'method': method}
@@ -67,9 +96,17 @@ class Client:
             if message.get('id') == self.counter:
                 if 'error' in message:
                     # Do not persist arbitrary server errors that might contain personal data.
-                    raise RuntimeError('Lecture des limites refusée. Vérifier la connexion du compte dans Codex.')
+                    raise ClientError('read_failed')
                 return message['result']
         raise TimeoutError('Codex ne répond pas. Nouvelle tentative dans une minute.')
+
+    def read_limits(self):
+        account = self.call('account/read', {'refreshToken': False}).get('account')
+        if account is None:
+            raise ClientError('login_required')
+        if account.get('type') == 'apiKey':
+            raise ClientError('api_key')
+        return self.call('account/rateLimits/read')
 
     def close(self):
         if self.proc.poll() is None:

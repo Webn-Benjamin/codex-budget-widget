@@ -11,7 +11,7 @@ import sys
 import time
 
 from budget import parse, calculate, validate_workdays, DEFAULT_WORKDAYS, short_window
-from client import Client
+from client import Client, ClientError
 
 
 def atomic_json(path, data):
@@ -74,7 +74,7 @@ def main():
             try:
                 if client is None:
                     client = Client()
-                payload = client.call('account/rateLimits/read')
+                payload = client.read_limits()
                 result = collect(args.data, payload, time.time())
                 atomic_json(status, result)
                 delay = 60
@@ -86,9 +86,10 @@ def main():
                     previous = {}
                 for entry in previous.get('models', {}).values():
                     entry['ok'] = False
+                    entry['error_code'] = exc.code if isinstance(exc, ClientError) else 'read_failed'
                     if 'short' in entry:
                         entry['short']['ok'] = False
-                previous.update(ok=False, error=str(exc) if isinstance(exc, (ValueError, RuntimeError, TimeoutError))
+                previous.update(ok=False, error_code=exc.code if isinstance(exc, ClientError) else 'read_failed', error=str(exc) if isinstance(exc, (ValueError, RuntimeError, TimeoutError))
                                 else 'Actualisation impossible. Nouvelle tentative dans une minute.')
                 atomic_json(status, previous)
                 if client:

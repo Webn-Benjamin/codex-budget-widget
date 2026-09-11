@@ -20,3 +20,13 @@ Show-Envelope $script:lastEnvelope
 Assert ($ui.Used.Text -eq '—') 'Old model values leaked'
 Assert ($ui.Daily.Text -eq '—') 'Old daily target leaked'
 Write-Output 'PASS: model switch, persistence, exhaustion, expiry, unavailable model.'
+
+foreach ($model in @('codex','spark')) {
+ Set-Model $model
+ Show-Envelope ([pscustomobject]@{ok=$false;error_code='login_required'})
+ Assert ($ui.Context.Text -eq 'Signed out · run codex login') 'CLI sign-in error missing'
+ Set-Language fr
+ Assert ($ui.Context.Text -eq 'Compte déconnecté · lancez codex login') 'French CLI error missing'
+ Set-Language en
+}
+Write-Output 'PASS: CLI errors on first launch and language switch for both models.'
