@@ -37,3 +37,22 @@ Assert ($ui.Status.ToolTip -eq 'WSL / Debian') 'WSL source missing'
 Set-Language fr
 Assert ($ui.Context.Text -eq 'Dans WSL : lancez codex login') 'French WSL instruction missing'
 Write-Output 'PASS: WSL login and source tooltip in FR/EN.'
+
+Set-Language en
+$script:sourceOptions=@('auto','windows','wsl:Debian')
+Update-SourceChoices
+$ui.SourceChoice.SelectedIndex=2
+Assert ((Get-Content (Join-Path $dataDir 'source.json') -Raw|ConvertFrom-Json).source -eq 'wsl:Debian') 'WSL selection not saved'
+Assert ($ui.Used.Text -eq '—') 'Old Windows quota visible after source switch'
+Assert (Test-Path (Join-Path $dataDir 'refresh')) 'Source switch did not request refresh'
+$old=$script:lastState
+Show-Envelope ([pscustomobject]@{requested_source='auto';ok=$true})
+Assert ([object]::ReferenceEquals($old,$script:lastState)) 'Old source response accepted'
+Show-Envelope ([pscustomobject]@{requested_source='wsl:Debian';ok=$false;source='WSL / Debian';error_code='wsl_login_required'})
+Assert ($ui.Status.ToolTip -eq 'WSL / Debian') 'Selected source response rejected'
+Set-Language fr
+Assert ($ui.SourceChoice.SelectedItem.Tag -eq 'wsl:Debian') 'Language changed source'
+$ui.SourceChoice.SelectedIndex=1
+$ui.SourceChoice.SelectedIndex=1
+Assert ((Get-Content (Join-Path $dataDir 'source.json') -Raw|ConvertFrom-Json).source -eq 'windows') 'Repeated source selection failed'
+Write-Output 'PASS: explicit source persistence, refresh, stale response rejection, FR/EN and repeated selection.'

@@ -35,7 +35,20 @@ def decode_list(raw):
     return [line.strip().lstrip('\ufeff') for line in text.splitlines() if line.strip()]
 
 
-def find_wsl():
+def list_wsl():
+    executable = Path(os.environ.get('SystemRoot', r'C:\Windows')) / 'System32' / 'wsl.exe'
+    try:
+        result = subprocess.run([str(executable), '--list', '--quiet'], stdin=subprocess.DEVNULL,
+                                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=5,
+                                creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+        if result.returncode == 0:
+            return [name for name in decode_list(result.stdout) if not name.lower().startswith('docker-desktop')]
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    return []
+
+
+def find_wsl(distribution=None):
     executable = Path(os.environ.get('SystemRoot', r'C:\Windows')) / 'System32' / 'wsl.exe'
     if not executable.is_file():
         return None
@@ -48,6 +61,8 @@ def find_wsl():
             return None
         names = [name for name in decode_list(result.stdout)
                  if not name.lower().startswith('docker-desktop')]
+        if distribution is not None:
+            names = [name for name in names if name == distribution]
         deadline = time.monotonic() + 20
         for name in names:
             remaining = deadline - time.monotonic()

@@ -12,6 +12,17 @@ import time
 
 from budget import parse, calculate, validate_workdays, DEFAULT_WORKDAYS, short_window
 from client import Client, ClientError
+from wsl_client import list_wsl
+
+
+def read_source(folder):
+    try:
+        value = json.loads((folder / 'source.json').read_text(encoding='utf-8-sig')).get('source')
+    except FileNotFoundError:
+        return 'auto'
+    if value in ('auto', 'windows') or (isinstance(value, str) and value.startswith('wsl:') and value[4:].strip()):
+        return value
+    raise ClientError('invalid_source')
 
 
 def atomic_json(path, data):
@@ -58,6 +69,9 @@ def main():
     args.data.mkdir(parents=True, exist_ok=True)
     status = args.data / 'status.json'
     client, parent = None, None
+    selection = 'auto'
+    active_selection = None
+    available_sources = ['auto', 'windows'] + ['wsl:' + name for name in list_wsl()]
     if args.parent:
         kernel = ctypes.WinDLL('kernel32', use_last_error=True)
         kernel.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
@@ -72,11 +86,18 @@ def main():
             if parent and kernel.WaitForSingleObject(parent, 0) == 0:
                 break
             try:
+                selection = read_source(args.data)
+                if client is not None and active_selection != selection:
+                    client.close()
+                    client = None
                 if client is None:
-                    client = Client()
+                    client = Client(selection)
+                    active_selection = selection
                 payload = client.read_limits()
                 result = collect(args.data, payload, time.time())
                 result['source'] = client.source
+                result['requested_source'] = selection
+                result['available_sources'] = available_sources
                 for entry in result['models'].values():
                     entry['source'] = client.source
                 atomic_json(status, result)
@@ -95,6 +116,8 @@ def main():
                         entry['short']['ok'] = False
                 previous.update(ok=False, source=client.source if client else None, error_code=exc.code if isinstance(exc, ClientError) else 'read_failed', error=str(exc) if isinstance(exc, (ValueError, RuntimeError, TimeoutError))
                                 else 'Actualisation impossible. Nouvelle tentative dans une minute.')
+                previous['requested_source'] = selection
+                previous['available_sources'] = available_sources
                 atomic_json(status, previous)
                 if client:
                     client.close()

@@ -5,6 +5,10 @@ $dataDir = Join-Path $PSScriptRoot 'data'
 [IO.Directory]::CreateDirectory($dataDir) | Out-Null
 . (Join-Path $PSScriptRoot 'i18n.ps1')
 $script:language=Get-Language $Language
+$script:sourceSelection='auto'
+try { $savedSource=(Get-Content (Join-Path $dataDir 'source.json') -Raw -Encoding UTF8|ConvertFrom-Json).source; if ($savedSource -in @('auto','windows') -or $savedSource -like 'wsl:*') { $script:sourceSelection=$savedSource } } catch {}
+$script:sourceOptions=@('auto','windows')
+$script:loadingSources=$false
 $script:model='codex'
 try { $savedModel=(Get-Content (Join-Path $dataDir 'model.json') -Raw -Encoding UTF8 | ConvertFrom-Json).model; if ($savedModel -in @('codex','spark')) { $script:model=$savedModel } } catch {}
 if ($Preview) { $script:model=$PreviewModel }
@@ -18,6 +22,26 @@ if (-not $ownsMutex -and -not $Preview) { $mutex.Dispose(); exit }
  ResizeMode="NoResize" Topmost="True" WindowStartupLocation="Manual"
  FontFamily="Segoe UI" FontSize="12" Foreground="#F4F7FA" UseLayoutRounding="True">
  <Window.Resources>
+  <Style x:Key="SourceSelector" TargetType="ComboBox">
+   <Setter Property="Foreground" Value="#F4F7FA"/>
+   <Setter Property="ItemContainerStyle"><Setter.Value><Style TargetType="ComboBoxItem">
+    <Setter Property="Padding" Value="10,7"/><Setter Property="Foreground" Value="#F4F7FA"/>
+    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBoxItem"><Border x:Name="Row" Background="#22282F" Padding="{TemplateBinding Padding}"><ContentPresenter/></Border><ControlTemplate.Triggers><Trigger Property="IsHighlighted" Value="True"><Setter TargetName="Row" Property="Background" Value="#38434D"/></Trigger><Trigger Property="IsSelected" Value="True"><Setter Property="Foreground" Value="#6DE0B9"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+   </Style></Setter.Value></Setter>
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBox">
+    <Grid>
+     <ToggleButton IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" Focusable="False" ClickMode="Press">
+      <ToggleButton.Template><ControlTemplate TargetType="ToggleButton"><Border x:Name="Surface" Background="#22282F" BorderBrush="#46515E" BorderThickness="1" CornerRadius="5"><Path HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,11,0" Stroke="#AFBBC8" StrokeThickness="1.5" Data="M 0,0 L 4,4 L 8,0"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="BorderBrush" Value="#6DE0B9"/></Trigger></ControlTemplate.Triggers></ControlTemplate></ToggleButton.Template>
+     </ToggleButton>
+     <Border x:Name="SourceFocus" CornerRadius="5" BorderBrush="#6DE0B9" BorderThickness="1" Visibility="Hidden" IsHitTestVisible="False"/>
+     <ContentPresenter Content="{TemplateBinding SelectionBoxItem}" ClipToBounds="True" Margin="10,0,28,0" VerticalAlignment="Center" IsHitTestVisible="False"/>
+     <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" AllowsTransparency="True" Focusable="False">
+      <Border Background="#22282F" BorderBrush="#46515E" BorderThickness="1" CornerRadius="5" MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"><ScrollViewer MaxHeight="180"><ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/></ScrollViewer></Border>
+     </Popup>
+    </Grid>
+    <ControlTemplate.Triggers><Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="SourceFocus" Property="Visibility" Value="Visible"/></Trigger><Trigger Property="IsDropDownOpen" Value="True"><Setter TargetName="SourceFocus" Property="Visibility" Value="Visible"/></Trigger><Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45"/></Trigger></ControlTemplate.Triggers>
+   </ControlTemplate></Setter.Value></Setter>
+  </Style>
   <Style x:Key="ControlButton" TargetType="Button">
    <Setter Property="Foreground" Value="#AFBBC8"/><Setter Property="Background" Value="Transparent"/>
    <Setter Property="BorderBrush" Value="Transparent"/><Setter Property="BorderThickness" Value="1"/>
@@ -133,6 +157,9 @@ if (-not $ownsMutex -and -not $Preview) { $mutex.Dispose(); exit }
    </Grid>
    <Border x:Name="SettingsPanel" Visibility="Collapsed" BorderBrush="#303842" BorderThickness="0,1,0,0" Padding="20,15,20,16">
     <StackPanel>
+     <TextBlock x:Name="SourceLabel" Text="Source des quotas" FontWeight="SemiBold" Margin="0,0,0,8"/>
+     <ComboBox x:Name="SourceChoice" Height="30" Margin="0,0,0,6" Style="{StaticResource SourceSelector}" AutomationProperties.Name="Quota source"/>
+     <TextBlock x:Name="SourceHint" Text="Choix enregistré automatiquement" Foreground="#AFBBC8" FontSize="10" Margin="0,0,0,14"/>
      <DockPanel><TextBlock x:Name="DaysLabel" Text="Jours travaillés" FontWeight="SemiBold" VerticalAlignment="Center"/><Button x:Name="SaveDays" Content="Appliquer" HorizontalAlignment="Right" Style="{StaticResource ControlButton}" Background="#303842"/></DockPanel>
      <UniformGrid x:Name="Workdays" Columns="7" Margin="0,12,0,16"/>
      <CheckBox x:Name="Pin" Content="Toujours au premier plan" IsChecked="True" Foreground="#F4F7FA"/>
@@ -147,7 +174,7 @@ if (-not $ownsMutex -and -not $Preview) { $mutex.Dispose(); exit }
 '@
 $window = [Windows.Markup.XamlReader]::Load([Xml.XmlNodeReader]::new($xaml))
 $ui = @{}
-'ModelCodex','ModelSpark','ShortPanel','ShortLabel','ShortValue','ShortFill','ShortReset','LangFR','LangEN','DailyLabel','BonusLabel','GlobalLabel','DaysLabel','UsageLabel','GlobalRemaining','DragArea','ConnectionDot','SettingsButton','Minimize','Close','Date','Used','Total','Track','Fill','Context','Daily','Bonus','Status','Refresh','SettingsPanel','SaveDays','Workdays','Pin','Weekly','Reset' | ForEach-Object { $ui[$_] = $window.FindName($_) }
+'SourceLabel','SourceChoice','SourceHint','ModelCodex','ModelSpark','ShortPanel','ShortLabel','ShortValue','ShortFill','ShortReset','LangFR','LangEN','DailyLabel','BonusLabel','GlobalLabel','DaysLabel','UsageLabel','GlobalRemaining','DragArea','ConnectionDot','SettingsButton','Minimize','Close','Date','Used','Total','Track','Fill','Context','Daily','Bonus','Status','Refresh','SettingsPanel','SaveDays','Workdays','Pin','Weekly','Reset' | ForEach-Object { $ui[$_] = $window.FindName($_) }
 $window.Left = [Math]::Max(0, [Windows.SystemParameters]::WorkArea.Right - 380)
 $window.Top = [Math]::Max(0, [Windows.SystemParameters]::WorkArea.Bottom - 398)
 $settings = Join-Path $dataDir 'window.json'
@@ -246,6 +273,8 @@ function Show-State($s) {
   $ui.Used.Foreground='#AFBBC8'; $ui.ConnectionDot.Fill='#F0CA8D'
   $message=switch ($s.error_code) {
    'codex_missing' { 'Codex absent · Windows ou WSL' }
+   'wsl_missing' { 'Codex introuvable dans la distribution choisie' }
+   'invalid_source' { 'Choisissez une source dans les réglages' }
    'wsl_login_required' { 'Dans WSL : lancez codex login' }
    'login_required' { 'Compte déconnecté · lancez codex login' }
    'api_key' { 'Clé API · quota ChatGPT indisponible' }
@@ -291,7 +320,7 @@ function Show-State($s) {
 function Resize-Widget {
  $height=420
  if ($script:model -eq 'spark') { $height+=112 }
- if ($ui.SettingsPanel.Visibility -eq 'Visible') { $height+=225 }
+ if ($ui.SettingsPanel.Visibility -eq 'Visible') { $height+=315 }
  $height=[Math]::Min($height,[Windows.SystemParameters]::WorkArea.Height)
  $window.Height=$height
  $window.Top=[Math]::Max(0,[Math]::Min($window.Top,[Windows.SystemParameters]::WorkArea.Bottom-$height))
@@ -327,7 +356,44 @@ function Set-Model([string]$value,[switch]$Persist) {
  if ($null -ne $script:lastEnvelope) { Show-Envelope $script:lastEnvelope }
  else { Show-State ([pscustomobject]@{ok=$false}) }
 }
+function Update-SourceChoices {
+ $script:loadingSources=$true
+ try {
+  $ui.SourceChoice.Items.Clear()
+  $options=@($script:sourceOptions)
+  if ($options -notcontains $script:sourceSelection) { $options+= $script:sourceSelection }
+  foreach ($option in $options) {
+   $item=[Windows.Controls.ComboBoxItem]::new()
+   $item.Tag=$option
+   $item.Content=if ($option -eq 'auto') { T 'Automatique' } elseif ($option -eq 'windows') { 'Windows' } else { 'WSL / '+$option.Substring(4) }
+   [void]$ui.SourceChoice.Items.Add($item)
+   if ($option -eq $script:sourceSelection) { $ui.SourceChoice.SelectedItem=$item }
+  }
+  $ui.SourceLabel.Text=(T 'Source des quotas')
+  $ui.SourceHint.Text=(T 'Choix enregistré automatiquement')
+ } finally { $script:loadingSources=$false }
+}
+$ui.SourceChoice.Add_SelectionChanged({
+ if ($script:loadingSources -or $null -eq $ui.SourceChoice.SelectedItem) { return }
+ $value=[string]$ui.SourceChoice.SelectedItem.Tag
+ if ($value -eq $script:sourceSelection) { return }
+ $file=Join-Path $dataDir 'source.json'
+ $tmp=$file+'.tmp'
+ try {
+  [IO.File]::WriteAllText($tmp,(@{source=$value}|ConvertTo-Json),[Text.UTF8Encoding]::new($false))
+  if (Test-Path -LiteralPath $file) { [IO.File]::Replace($tmp,$file,$file+'.bak') } else { [IO.File]::Move($tmp,$file) }
+  $script:sourceSelection=$value
+  $script:lastEnvelope=$null
+  $script:pendingDays=$null
+  Show-State ([pscustomobject]@{ok=$false})
+  $ui.Context.Text=(T 'Connexion à la source choisie…')
+  [IO.File]::WriteAllText((Join-Path $dataDir 'refresh'),'')
+ } catch { $ui.Context.Text=(T 'Enregistrement impossible · réessaie dans un instant.'); Update-SourceChoices }
+})
 function Show-Envelope($envelope) {
+ if ($envelope.available_sources -and ($script:sourceOptions -join '|') -ne ($envelope.available_sources -join '|')) { $script:sourceOptions=@($envelope.available_sources); Update-SourceChoices }
+ if ($envelope.requested_source -and $envelope.requested_source -ne $script:sourceSelection) { return }
+ if (-not $envelope.requested_source -and $script:sourceSelection -ne 'auto' -and -not $Preview) { return }
  $script:lastEnvelope=$envelope
  if ($null -ne $envelope.models) { $entry=$envelope.models.($script:model) }
  elseif ($script:model -eq 'codex') { $entry=$envelope }

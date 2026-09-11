@@ -66,6 +66,35 @@ class WslTests(unittest.TestCase):
             wsl.assert_not_called()
             self.assertEqual(popen.call_args.args[0], ['codex.exe', 'app-server', '--stdio'])
 
+    def test_explicit_debian_bypasses_existing_windows(self):
+        command = ['wsl.exe', '-d', 'Debian']
+        with patch('client.find_codex') as windows, patch('client.find_wsl', return_value=(command, 'WSL / Debian')) as wsl, patch('client.subprocess.Popen') as popen, patch.object(Client, 'call'), patch.object(Client, '_write'), patch('client.threading.Thread'):
+            self.assertEqual(Client('wsl:Debian').source, 'WSL / Debian')
+            windows.assert_not_called()
+            wsl.assert_called_once_with('Debian')
+            self.assertEqual(popen.call_args.args[0], command)
+
+    def test_explicit_source_does_not_silently_fallback(self):
+        with patch('client.find_wsl', return_value=None), patch('client.find_codex') as windows:
+            with self.assertRaises(ClientError) as error:
+                Client('wsl:Debian')
+            self.assertEqual(error.exception.code, 'wsl_missing')
+            windows.assert_not_called()
+        with patch('client.find_codex', side_effect=ClientError('codex_missing')), patch('client.find_wsl') as wsl:
+            with self.assertRaises(ClientError):
+                Client('windows')
+            wsl.assert_not_called()
+
+    @patch('wsl_client.Path.is_file', return_value=True)
+    def test_only_selected_distribution_is_probed(self, exists):
+        with patch('wsl_client.subprocess.run', side_effect=[
+            Mock(returncode=0, stdout=b'Ubuntu\nDebian\n'),
+            Mock(returncode=0, stdout=b'CODEX_WIDGET_FOUND\n')
+        ]) as run:
+            self.assertEqual(find_wsl('Debian')[1], 'WSL / Debian')
+            self.assertEqual(run.call_count, 2)
+            self.assertEqual(run.call_args.args[0][2], 'Debian')
+
     def test_wsl_transport_selected_when_windows_missing(self):
         command = ['wsl.exe', '-d', 'Debian', '--exec', 'sh', '-lc', RUN]
         with patch('client.find_codex', side_effect=ClientError('codex_missing')), patch('client.find_wsl', return_value=(command, 'WSL / Debian')), patch('client.subprocess.Popen') as popen, patch.object(Client, 'call'), patch.object(Client, '_write'), patch('client.threading.Thread'):

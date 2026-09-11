@@ -1,4 +1,10 @@
 ﻿$script:english = @{
+ "Automatique"="Automatic"
+ "Source des quotas"="Quota source"
+ "Choix enregistré automatiquement"="Selection saved automatically"
+ "Connexion à la source choisie…"="Connecting to selected source…"
+ "Codex introuvable dans la distribution choisie"="Codex not found in selected distribution"
+ "Choisissez une source dans les réglages"="Choose a source in settings"
  "Dans WSL : lancez codex login"="In WSL: run codex login"
  "Codex absent · Windows ou WSL"="Codex missing · Windows or WSL"
  "Compte déconnecté · lancez codex login"="Signed out · run codex login"
@@ -67,6 +73,7 @@ function Set-Language([string]$value, [switch]$Persist) {
   } catch { $ui.Context.Text=(T 'Impossible de mémoriser la langue.'); return }
  }
  $script:language=$value
+ Update-SourceChoices
  foreach ($code in @('fr','en')) {
   $button=$ui[('Lang'+$code.ToUpper())]
   $button.Background=if ($value -eq $code) { '#303842' } else { 'Transparent' }

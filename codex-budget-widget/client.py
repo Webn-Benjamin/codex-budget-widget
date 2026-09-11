@@ -51,13 +51,19 @@ def find_codex():
 
 
 class Client:
-    def __init__(self):
+    def __init__(self, selection='auto'):
+        if selection not in ('auto', 'windows') and not (isinstance(selection, str) and selection.startswith('wsl:') and selection[4:].strip()):
+            raise ClientError('invalid_source')
         try:
+            if selection.startswith('wsl:'):
+                raise ClientError('wsl_selected')
             command, self.source = [find_codex(), 'app-server', '--stdio'], 'Windows'
         except ClientError:
-            found = find_wsl()
+            if selection == 'windows':
+                raise
+            found = find_wsl(selection[4:]) if selection.startswith('wsl:') else find_wsl()
             if found is None:
-                raise ClientError('codex_missing') from None
+                raise ClientError('wsl_missing' if selection.startswith('wsl:') else 'codex_missing') from None
             command, self.source = found
         self.proc = subprocess.Popen(command,
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
@@ -68,7 +74,7 @@ class Client:
         self.reader.start()
         try:
             self.call('initialize', {'clientInfo': {'name': 'codex_budget_widget',
-                'title': 'Budget Codex', 'version': '1.2.0'}})
+                'title': 'Budget Codex', 'version': '1.2.1'}})
             self._write({'method': 'initialized'})
         except Exception:
             self.close()

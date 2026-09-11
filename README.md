@@ -33,7 +33,7 @@ The Windows Codex CLI is supported, including npm installations. The desktop Cod
 
 Detection follows Windows PATH order (native executable or npm package), then the default user npm folder, then the desktop app bundle. The widget uses that installation's account and inherited `CODEX_HOME`; a different CLI profile may use a different account. After changing PATH, restart the widget; after signing in, click Refresh.
 
-WSL detection checks the Linux login PATH, common user installation folders and nvm. Hover over the connection status to see the source (Windows or WSL / distribution). Windows takes priority when both are installed; quotas are not merged across accounts. A WSL probe may start a stopped distribution. The widget closes its own server connection, without shutting down WSL. Custom users and multiple-account selection are not supported.
+WSL detection checks the Linux login PATH, common user installation folders and nvm. Hover over the connection status to see the source (Windows or WSL / distribution). Windows takes priority when both are installed; quotas are not merged across accounts. A WSL probe may start a stopped distribution. The widget closes its own server connection, without shutting down WSL. **To use Debian even when Codex is installed on Windows:** open Settings → Quota source → WSL / Debian. The choice is saved and reconnects automatically, without clicking Apply. Automatic retains Windows priority; explicit Windows or WSL choices never fall back to another installation. Restart the widget after adding a new distribution. Custom Linux users are not supported.
 
 ### Get started
 
@@ -89,7 +89,7 @@ Le CLI Codex pour Windows est pris en charge, y compris les installations npm. L
 
 La détection suit l’ordre du PATH Windows (exécutable natif ou paquet npm), puis le dossier npm utilisateur par défaut, puis le binaire de l’application. Le widget utilise le compte de cette installation et le `CODEX_HOME` hérité ; un autre profil CLI peut utiliser un autre compte. Après modification du PATH, relancez le widget ; après connexion, cliquez sur Actualiser.
 
-La détection WSL vérifie le PATH de connexion Linux, les dossiers utilisateur habituels et nvm. Survolez l’état de connexion pour voir la source (Windows ou WSL / distribution). Windows reste prioritaire si les deux sont installés ; les quotas de comptes différents ne sont pas fusionnés. La recherche peut démarrer une distribution arrêtée. Le widget ferme sa propre connexion serveur sans arrêter WSL. Le choix d’un autre utilisateur Linux ou de plusieurs comptes n’est pas proposé.
+La détection WSL vérifie le PATH de connexion Linux, les dossiers utilisateur habituels et nvm. Survolez l’état de connexion pour voir la source (Windows ou WSL / distribution). Windows reste prioritaire si les deux sont installés ; les quotas de comptes différents ne sont pas fusionnés. La recherche peut démarrer une distribution arrêtée. Le widget ferme sa propre connexion serveur sans arrêter WSL. **Pour utiliser Debian même si Codex est installé sous Windows :** ouvrez Réglages → Source des quotas → WSL / Debian. Le choix est mémorisé et reconnecte automatiquement, sans cliquer sur Appliquer. Automatique garde la priorité Windows ; un choix explicite Windows ou WSL ne bascule jamais vers une autre installation. Relancez le widget après ajout d’une distribution. Le choix d’un autre utilisateur Linux n’est pas proposé.
 
 ### Bien démarrer
 
