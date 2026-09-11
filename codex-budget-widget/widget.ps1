@@ -1,17 +1,20 @@
-﻿param([switch]$Preview, [ValidateSet('live','normal','bonus','partial','offline','settings')][string]$PreviewState='live', [ValidateSet('','fr','en')][string]$Language='')
+﻿param([switch]$Preview, [ValidateSet('live','normal','bonus','partial','offline','settings')][string]$PreviewState='live', [ValidateSet('','fr','en')][string]$Language='', [ValidateSet('codex','spark')][string]$PreviewModel='codex')
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
 $dataDir = Join-Path $PSScriptRoot 'data'
 [IO.Directory]::CreateDirectory($dataDir) | Out-Null
 . (Join-Path $PSScriptRoot 'i18n.ps1')
 $script:language=Get-Language $Language
+$script:model='codex'
+try { $savedModel=(Get-Content (Join-Path $dataDir 'model.json') -Raw -Encoding UTF8 | ConvertFrom-Json).model; if ($savedModel -in @('codex','spark')) { $script:model=$savedModel } } catch {}
+if ($Preview) { $script:model=$PreviewModel }
 $ownsMutex = $false
 $mutex = [Threading.Mutex]::new($true, 'Local\CodexBudgetWidget_v1', [ref]$ownsMutex)
 if (-not $ownsMutex -and -not $Preview) { $mutex.Dispose(); exit }
 [xml]$xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Budget Codex"
- Width="360" Height="378" WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+ Width="360" Height="420" WindowStyle="None" AllowsTransparency="True" Background="Transparent"
  ResizeMode="NoResize" Topmost="True" WindowStartupLocation="Manual"
  FontFamily="Segoe UI" FontSize="12" Foreground="#F4F7FA" UseLayoutRounding="True">
  <Window.Resources>
@@ -63,6 +66,7 @@ if (-not $ownsMutex -and -not $Preview) { $mutex.Dispose(); exit }
   </Style>
  </Window.Resources>
  <Border Background="#171B20" BorderBrush="#38414B" BorderThickness="1" CornerRadius="12">
+  <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
   <StackPanel>
    <Grid x:Name="DragArea" Height="53" Background="Transparent" Margin="17,0,10,0">
     <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="64"/><ColumnDefinition Width="32"/><ColumnDefinition Width="32"/><ColumnDefinition Width="32"/></Grid.ColumnDefinitions>
@@ -85,6 +89,12 @@ if (-not $ownsMutex -and -not $Preview) { $mutex.Dispose(); exit }
      <Path Width="12" Height="12" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.5" Data="M 2,2 L 10,10 M 10,2 L 2,10"/>
     </Button>
    </Grid>
+   <Border Margin="22,0,22,8" Height="34" Background="#22282F" CornerRadius="7" Padding="3">
+    <UniformGrid Columns="2">
+     <Button x:Name="ModelCodex" Content="Codex" Style="{StaticResource ControlButton}" FontWeight="SemiBold" Padding="4,2" AutomationProperties.Name="Codex"/>
+     <Button x:Name="ModelSpark" Content="Spark" Style="{StaticResource ControlButton}" FontWeight="SemiBold" Padding="4,2" ToolTip="GPT-5.3-Codex-Spark" AutomationProperties.Name="GPT-5.3-Codex-Spark"/>
+    </UniformGrid>
+   </Border>
    <StackPanel Margin="22,7,22,0">
     <DockPanel>
      <TextBlock x:Name="UsageLabel" Text="Utilisé aujourd’hui" FontSize="14" FontWeight="SemiBold"/>
@@ -110,6 +120,13 @@ if (-not $ownsMutex -and -not $Preview) { $mutex.Dispose(); exit }
    <Border BorderBrush="#303842" BorderThickness="0,1,0,0" Margin="22,12,22,0" Padding="0,9,0,0">
     <DockPanel><TextBlock x:Name="GlobalLabel" Text="Quota global restant" Foreground="#AFBBC8" VerticalAlignment="Center"/><TextBlock x:Name="GlobalRemaining" Text="— / 100 %" HorizontalAlignment="Right" FontSize="18" FontWeight="SemiBold"/></DockPanel>
    </Border>
+   <Border x:Name="ShortPanel" Visibility="Collapsed" Margin="22,12,22,0" Padding="0,10,0,0" BorderBrush="#303842" BorderThickness="0,1,0,0" Height="100">
+    <StackPanel>
+     <DockPanel><TextBlock x:Name="ShortLabel" Text="Spark · 5 h" Foreground="#AFBBC8" VerticalAlignment="Center"/><TextBlock x:Name="ShortValue" Text="—" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Right" Foreground="#AFA6FF"/></DockPanel>
+     <Grid Height="5" Margin="0,8,0,8" ClipToBounds="True"><Border Background="#303842" CornerRadius="2"/><Border x:Name="ShortFill" Width="0" HorizontalAlignment="Left" Background="#AFA6FF" CornerRadius="2"/></Grid>
+     <TextBlock x:Name="ShortReset" Text="—" FontSize="11" Foreground="#AFBBC8"/>
+    </StackPanel>
+   </Border>
    <Grid Margin="17,9,15,7" Height="25">
     <TextBlock x:Name="Status" Text="Connexion…" Foreground="#AFBBC8" FontSize="10" VerticalAlignment="Center"/>
     <Button x:Name="Refresh" Content="Actualiser" Style="{StaticResource ControlButton}" HorizontalAlignment="Right" FontSize="10" Padding="6,2"/>
@@ -124,12 +141,13 @@ if (-not $ownsMutex -and -not $Preview) { $mutex.Dispose(); exit }
     </StackPanel>
    </Border>
   </StackPanel>
+  </ScrollViewer>
  </Border>
 </Window>
 '@
 $window = [Windows.Markup.XamlReader]::Load([Xml.XmlNodeReader]::new($xaml))
 $ui = @{}
-'LangFR','LangEN','DailyLabel','BonusLabel','GlobalLabel','DaysLabel','UsageLabel','GlobalRemaining','DragArea','ConnectionDot','SettingsButton','Minimize','Close','Date','Used','Total','Track','Fill','Context','Daily','Bonus','Status','Refresh','SettingsPanel','SaveDays','Workdays','Pin','Weekly','Reset' | ForEach-Object { $ui[$_] = $window.FindName($_) }
+'ModelCodex','ModelSpark','ShortPanel','ShortLabel','ShortValue','ShortFill','ShortReset','LangFR','LangEN','DailyLabel','BonusLabel','GlobalLabel','DaysLabel','UsageLabel','GlobalRemaining','DragArea','ConnectionDot','SettingsButton','Minimize','Close','Date','Used','Total','Track','Fill','Context','Daily','Bonus','Status','Refresh','SettingsPanel','SaveDays','Workdays','Pin','Weekly','Reset' | ForEach-Object { $ui[$_] = $window.FindName($_) }
 $window.Left = [Math]::Max(0, [Windows.SystemParameters]::WorkArea.Right - 380)
 $window.Top = [Math]::Max(0, [Windows.SystemParameters]::WorkArea.Bottom - 398)
 $settings = Join-Path $dataDir 'window.json'
@@ -147,11 +165,11 @@ $ui.Close.Add_Click({ $window.Close() })
 $ui.Minimize.Add_Click({ $window.WindowState = 'Minimized' })
 $ui.SettingsButton.Add_Click({
  if ($ui.SettingsPanel.Visibility -eq 'Collapsed') {
-  $ui.SettingsPanel.Visibility = 'Visible'; $window.Height = 603
-  $window.Top = [Math]::Max(0,[Math]::Min($window.Top,[Windows.SystemParameters]::WorkArea.Bottom-603))
- } else { $ui.SettingsPanel.Visibility = 'Collapsed'; $window.Height = 378 }
+  $ui.SettingsPanel.Visibility = 'Visible'; Resize-Widget
+  Resize-Widget
+ } else { $ui.SettingsPanel.Visibility = 'Collapsed'; Resize-Widget }
 })
-$window.Add_KeyDown({ if ($_.Key -eq 'Escape' -and $ui.SettingsPanel.Visibility -eq 'Visible') { $ui.SettingsPanel.Visibility='Collapsed'; $window.Height=378; $_.Handled=$true } })
+$window.Add_KeyDown({ if ($_.Key -eq 'Escape' -and $ui.SettingsPanel.Visibility -eq 'Visible') { $ui.SettingsPanel.Visibility='Collapsed'; Resize-Widget; $_.Handled=$true } })
 $ui.Pin.Add_Click({ $window.Topmost = [bool]$ui.Pin.IsChecked })
 $ui.Refresh.Add_Click({ try { [IO.File]::WriteAllText((Join-Path $dataDir 'refresh'), '') } catch { $ui.Context.Text=(T 'Données indisponibles · nouvelle tentative automatique') } })
 $workdaysFile = Join-Path $dataDir 'workdays.json'
@@ -168,7 +186,7 @@ $ui.SaveDays.Add_Click({
  $selected=@($dayBoxes | Where-Object { $_.IsChecked } | ForEach-Object { [int]$_.Tag })
  if ($selected.Count -eq 0) { $ui.Context.Text=(T (T "Choisis au moins un jour travaillé.")); return }
  if (($selected -join ',') -eq ($chosenDays -join ',')) {
-  $ui.SettingsPanel.Visibility='Collapsed'; $window.Height=378
+  $ui.SettingsPanel.Visibility='Collapsed'; Resize-Widget
   return
  }
  $tempConfig=$workdaysFile+'.'+[Guid]::NewGuid().ToString('N')+'.tmp'
@@ -179,7 +197,7 @@ $ui.SaveDays.Add_Click({
   $script:chosenDays=$selected
   $script:pendingDays = $selected -join ','
   [IO.File]::WriteAllText((Join-Path $dataDir 'refresh'),'')
-  $ui.SettingsPanel.Visibility='Collapsed'; $window.Height=378
+  $ui.SettingsPanel.Visibility='Collapsed'; Resize-Widget
   $ui.Total.Text=' / —'; $ui.Fill.Width=0; $ui.Context.Text=(T (T "Planning enregistré · recalcul en cours…"))
   $ui.Context.ToolTip=$null
  } catch {
@@ -204,6 +222,7 @@ function Get-PlanningBalance($s) {
 }
 function Show-State($s) {
  $script:lastState=$s
+ Show-Short $s.short
  $epoch=[DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
  $fresh=$s.ok -and $s.updated -and ($epoch-$s.updated -le 150) -and ($s.reset -gt $epoch)
  if ($null -ne $script:pendingDays) {
@@ -212,8 +231,9 @@ function Show-State($s) {
  $ui.UsageLabel.Text=(T "Utilisé aujourd’hui")
  $ui.GlobalRemaining.Text=if ($fresh) { ([double]$s.remaining).ToString('0.############',(Get-DisplayCulture))+' / 100 %' } else { '— / 100 %' }
  $ui.Date.Text=$s.day
+ if (-not $fresh) { $ui.Daily.Text='—'; $ui.Weekly.Text=(T 'Quota hebdomadaire : —'); $ui.Reset.Text=(T 'Reset : —') }
  if ($null -ne $s.standard_cap) { $ui.Daily.Text="$(Format-Points $s.standard_cap) %" }
- if ($s.updated) {
+ if ($s.updated -and $s.reset) {
   $ui.Weekly.Text=(T "Quota hebdomadaire : {0} % restants") -f (Format-Points $s.remaining)
   [TimeZoneInfo]::ClearCachedData()
   $localReset=[TimeZoneInfo]::ConvertTime([DateTimeOffset]::FromUnixTimeSeconds([long]$s.reset),[TimeZoneInfo]::Local)
@@ -255,11 +275,64 @@ function Show-State($s) {
  }
  $time=[DateTimeOffset]::FromUnixTimeSeconds([long]$s.updated).ToLocalTime().ToString('HH:mm')
  $ui.Status.Text=(T "Mis à jour à {0} · toutes les minutes") -f $time
+ if ($script:model -eq 'spark' -and $s.short.ok -and $s.short.reset -gt $epoch -and $s.short.remaining -le 0) {
+  $ui.Context.Text=(T "Spark : limite 5 h atteinte · attendre le reset")
+ }
+}
+function Resize-Widget {
+ $height=420
+ if ($script:model -eq 'spark') { $height+=112 }
+ if ($ui.SettingsPanel.Visibility -eq 'Visible') { $height+=225 }
+ $height=[Math]::Min($height,[Windows.SystemParameters]::WorkArea.Height)
+ $window.Height=$height
+ $window.Top=[Math]::Max(0,[Math]::Min($window.Top,[Windows.SystemParameters]::WorkArea.Bottom-$height))
+}
+function Show-Short($short) {
+ $ui.ShortLabel.Text=(T 'Spark · 5 h restantes')
+ $ui.ShortValue.Text='—'; $ui.ShortValue.Foreground='#AFA6FF'; $ui.ShortFill.Width=0
+ $ui.ShortReset.Text=(T 'Limite 5 h indisponible')
+ $epoch=[DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+ if ($short.ok -and $short.reset -gt $epoch -and ($epoch-$short.updated) -le 150) {
+  $ui.ShortValue.Text="$(Format-Points $short.remaining) %"
+  if ($short.remaining -le 0) { $ui.ShortValue.Foreground='#F19D94' }
+  $ui.ShortFill.Width=312*[double]$short.remaining/100
+  $ui.ShortFill.Background=if ($short.remaining -le 0) { '#F19D94' } else { '#AFA6FF' }
+  $reset=[DateTimeOffset]::FromUnixTimeSeconds([long]$short.reset).ToLocalTime().ToString('dd/MM HH:mm')
+  $ui.ShortReset.Text=(T 'Reset : {0} · heure locale') -f $reset
+ }
+}
+function Set-Model([string]$value,[switch]$Persist) {
+ if ($Persist) {
+  $file=Join-Path $dataDir 'model.json'; $tmp=$file+'.tmp'
+  try { [IO.File]::WriteAllText($tmp,(@{model=$value}|ConvertTo-Json)); if (Test-Path $file) { [IO.File]::Replace($tmp,$file,$file+'.bak') } else { [IO.File]::Move($tmp,$file) } }
+  catch { $ui.Context.Text=(T 'Enregistrement impossible · réessaie dans un instant.'); return }
+ }
+ $script:model=$value
+ $ui.ShortPanel.Visibility=if ($value -eq 'spark') { 'Visible' } else { 'Collapsed' }
+ foreach ($key in @('codex','spark')) {
+  $button=if ($key -eq 'spark') { $ui.ModelSpark } else { $ui.ModelCodex }
+  $button.Background=if ($key -eq $value) { '#39434F' } else { 'Transparent' }
+  $button.Foreground=if ($key -eq $value) { if ($key -eq 'spark') { '#C6BFFF' } else { '#6DE0B9' } } else { '#AFBBC8' }
+ }
+ Resize-Widget
+ if ($null -ne $script:lastEnvelope) { Show-Envelope $script:lastEnvelope }
+ else { Show-State ([pscustomobject]@{ok=$false}) }
+}
+function Show-Envelope($envelope) {
+ $script:lastEnvelope=$envelope
+ if ($null -ne $envelope.models) { $entry=$envelope.models.($script:model) }
+ elseif ($script:model -eq 'codex') { $entry=$envelope }
+ else { $entry=[pscustomobject]@{ok=$false} }
+ if ($null -eq $entry) { $entry=[pscustomobject]@{ok=$false} }
+ if (-not $entry.ok -and $null -ne $script:pendingDays) { $script:pendingDays=$null }
+ Show-State $entry
 }
 function Update-Widget {
  $file=Join-Path $dataDir 'status.json'
- if (Test-Path -LiteralPath $file) { try { $s=Get-Content -LiteralPath $file -Raw -Encoding UTF8|ConvertFrom-Json } catch { return }; Show-State $s }
+ if (Test-Path -LiteralPath $file) { try { $s=Get-Content -LiteralPath $file -Raw -Encoding UTF8|ConvertFrom-Json } catch { return }; Show-Envelope $s }
 }
+$ui.ModelCodex.Add_Click({ Set-Model 'codex' -Persist })
+$ui.ModelSpark.Add_Click({ Set-Model 'spark' -Persist })
 $ui.LangFR.Add_Click({ Set-Language 'fr' -Persist })
 $ui.LangEN.Add_Click({ Set-Language 'en' -Persist })
 $timer=[Windows.Threading.DispatcherTimer]::new(); $timer.Interval=[TimeSpan]::FromSeconds(2); $timer.Add_Tick({ Update-Widget })
@@ -271,6 +344,7 @@ if (-not $Preview) {
 $window.Add_Closed({ $timer.Stop(); if (-not $Preview) { @{left=$window.Left;top=$window.Top;pin=$window.Topmost}|ConvertTo-Json|Set-Content -LiteralPath $settings -Encoding UTF8 } })
 try {
  Set-Language $script:language
+ Set-Model $script:model
  Update-Widget
  if ($Preview) {
   if ($PreviewState -ne 'live') {
@@ -281,12 +355,14 @@ try {
    # Preview controls and figures share the same synthetic schedule, never personal settings.
    foreach ($box in $dayBoxes) { $box.IsChecked=$demo.workdays -contains [int]$box.Tag }
    $script:pendingDays=$null
-   Show-State $demo
-   if ($PreviewState -eq 'settings') { $ui.SettingsPanel.Visibility='Visible'; $window.Height=603 }
+   $sparkDemo=$demo.PSObject.Copy()
+   $sparkDemo | Add-Member -NotePropertyName short -NotePropertyValue ([pscustomobject]@{ok=$true;remaining=68;used=32;updated=[DateTimeOffset]::UtcNow.ToUnixTimeSeconds();reset=[DateTimeOffset]::UtcNow.ToUnixTimeSeconds()+7200})
+   Show-Envelope ([pscustomobject]@{models=[pscustomobject]@{codex=$demo;spark=$sparkDemo}})
+   if ($PreviewState -eq 'settings') { $ui.SettingsPanel.Visibility='Visible'; Resize-Widget }
   }
   $window.Show(); $window.UpdateLayout()
   $bitmap=[Windows.Media.Imaging.RenderTargetBitmap]::new([int]$window.ActualWidth,[int]$window.ActualHeight,96,96,[Windows.Media.PixelFormats]::Pbgra32); $bitmap.Render($window)
   $encoder=[Windows.Media.Imaging.PngBitmapEncoder]::new(); $encoder.Frames.Add([Windows.Media.Imaging.BitmapFrame]::Create($bitmap))
-  $stream=[IO.File]::Create((Join-Path $PSScriptRoot ("preview-$PreviewState-$script:language.png"))); $encoder.Save($stream); $stream.Dispose(); $window.Close()
+  $stream=[IO.File]::Create((Join-Path $PSScriptRoot ("preview-$PreviewState-$script:language-$script:model.png"))); $encoder.Save($stream); $stream.Dispose(); $window.Close()
  } else { $timer.Start(); $window.ShowDialog()|Out-Null }
 } finally { $timer.Stop(); if ($ownsMutex) { $mutex.ReleaseMutex() }; $mutex.Dispose() }

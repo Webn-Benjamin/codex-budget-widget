@@ -6,10 +6,11 @@ import json
 import os
 from pathlib import Path
 import sqlite3
+from contextlib import closing
 import sys
 import time
 
-from budget import parse, calculate, validate_workdays, DEFAULT_WORKDAYS
+from budget import parse, calculate, validate_workdays, DEFAULT_WORKDAYS, short_window
 from client import Client
 
 
@@ -19,16 +20,33 @@ def atomic_json(path, data):
     os.replace(tmp, path)
 
 
-def record(folder, row):
-    with sqlite3.connect(folder / 'history.sqlite') as db:
+def record(folder, row, model="codex"):
+    if model not in ("codex", "spark"):
+        raise ValueError("Unknown quota model")
+    table = "samples" if model == "codex" else "samples_spark"
+    with closing(sqlite3.connect(folder / 'history.sqlite')) as db, db:
         db.row_factory = sqlite3.Row
-        db.execute('CREATE TABLE IF NOT EXISTS samples (account TEXT, at REAL, reset REAL, used REAL)')
-        db.execute('INSERT INTO samples VALUES (:account, :at, :reset, :used)', row)
+        db.execute(f'CREATE TABLE IF NOT EXISTS {table} (account TEXT, at REAL, reset REAL, used REAL)')
+        db.execute(f'INSERT INTO {table} VALUES (:account, :at, :reset, :used)', row)
         rows = [dict(r) for r in db.execute(
-            'SELECT * FROM samples WHERE account=? AND reset=? ORDER BY at', (row['account'], row['reset']))]
+            f'SELECT * FROM {table} WHERE account=? AND reset=? ORDER BY at', (row['account'], row['reset']))]
     config_path = folder / 'workdays.json'
     config = json.loads(config_path.read_text(encoding='utf-8-sig')) if config_path.exists() else {'workdays': DEFAULT_WORKDAYS}
     return calculate(rows, validate_workdays(config.get('workdays')))
+
+
+def collect(folder, payload, now):
+    models = {}
+    for model in ('codex', 'spark'):
+        try:
+            models[model] = dict(ok=True, **record(folder, parse(payload, now, model), model))
+        except ValueError:
+            models[model] = dict(ok=False, updated=now)
+    try:
+        models['spark']['short'] = short_window(payload, now)
+    except ValueError:
+        models['spark']['short'] = dict(ok=False)
+    return dict(models['codex'], models=models)
 
 
 def main():
@@ -57,8 +75,8 @@ def main():
                 if client is None:
                     client = Client()
                 payload = client.call('account/rateLimits/read')
-                result = record(args.data, parse(payload, time.time()))
-                atomic_json(status, dict(ok=True, **result))
+                result = collect(args.data, payload, time.time())
+                atomic_json(status, result)
                 delay = 60
             except Exception as exc:
                 # Preserve the last successful observation, but mark it unavailable.
@@ -66,6 +84,10 @@ def main():
                     previous = json.loads(status.read_text(encoding='utf-8'))
                 except (OSError, ValueError):
                     previous = {}
+                for entry in previous.get('models', {}).values():
+                    entry['ok'] = False
+                    if 'short' in entry:
+                        entry['short']['ok'] = False
                 previous.update(ok=False, error=str(exc) if isinstance(exc, (ValueError, RuntimeError, TimeoutError))
                                 else 'Actualisation impossible. Nouvelle tentative dans une minute.')
                 atomic_json(status, previous)

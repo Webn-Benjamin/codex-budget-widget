@@ -40,7 +40,9 @@ def schedule(start, reset, workdays):
     return allowances
 
 
-def parse(payload, now):
+def parse(payload, now, model="codex"):
+    if model == "spark":
+        payload = dict(payload, rateLimitsByLimitId={"codex": dict(spark_quota(payload), limitId="codex")})
     buckets = payload.get('rateLimitsByLimitId')
     quota = buckets.get('codex') if buckets is not None else payload.get('rateLimits')
     if not quota or quota.get('limitId') not in (None, 'codex'):
@@ -120,3 +122,26 @@ def calculate(rows, workdays=None, zone=None):
                 reset=current['reset'], reset_label=reset.strftime('%d/%m à %H:%M'),
                 day=now.strftime('%d/%m'), pace=min(available, remaining/max(1, days_left)) if available is not None and cap > 0 else None,
                 cycle_day=prior_days+1, revised=revised)
+
+
+def spark_quota(payload):
+    buckets = payload.get('rateLimitsByLimitId') or {}
+    quota = buckets.get('codex_bengalfox')
+    if quota is None:
+        quota = next((q for q in buckets.values() if q and q.get('limitName') == 'GPT-5.3-Codex-Spark'), None)
+    if not quota:
+        raise ValueError('Spark quota unavailable')
+    return quota
+
+
+def short_window(payload, now):
+    quota = spark_quota(payload)
+    window = next((quota.get(k) for k in ('primary','secondary') if quota.get(k) and quota[k].get('windowDurationMins') == 300), None)
+    if not window:
+        return dict(ok=False)
+    used, reset = window.get('usedPercent'), window.get('resetsAt')
+    valid = (type(used) in (int,float) and math.isfinite(used) and 0 <= used <= 100
+             and type(reset) in (int,float) and math.isfinite(reset) and now < reset <= now+18060)
+    if not valid:
+        return dict(ok=False)
+    return dict(ok=True, used=used, remaining=100-used, reset=reset, updated=now)

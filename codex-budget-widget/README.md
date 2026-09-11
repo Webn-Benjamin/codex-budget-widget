@@ -15,6 +15,10 @@
 
 Budget Codex is a small Windows desktop widget that helps you plan your Codex usage until the next weekly reset. Choose your working days and keep your daily budget, carryover and remaining weekly quota in view.
 
+### Codex and Spark
+
+Switch between **Codex** and **GPT-5.3-Codex-Spark** above the daily budget. Your selection is saved. Each model has its own weekly history and daily carryover; workdays are shared. Spark also shows its **5-hour remaining quota and reset time**, independently of its weekly budget. These two percentages are never added together. An exhausted 5-hour window can limit Spark even when its weekly quota remains available. If your account does not expose Spark limits, the widget shows unavailable values rather than guessing.
+
 ### At a glance
 
 - **Daily usage:** see how much you have used against your daily allowance, including carryover — for example, **5% / 17%**.
@@ -58,6 +62,10 @@ Looking for the version you use inside a Codex conversation? See the [on-demand 
 ## Français
 
 Budget Codex est un petit widget Windows pour organiser votre consommation Codex jusqu’au prochain renouvellement hebdomadaire. Choisissez vos jours de travail et gardez votre budget du jour, votre bonus et votre quota restant sous les yeux.
+
+### Codex et Spark
+
+Le sélecteur au-dessus du budget permet de choisir **Codex** ou **GPT-5.3-Codex-Spark**. Votre choix est mémorisé. Chaque modèle possède son historique hebdomadaire et son report journalier ; les jours de travail sont communs. Spark affiche aussi son **quota restant sur 5 heures et son reset**, indépendamment du budget hebdomadaire. Ces deux pourcentages ne sont jamais additionnés. La limite de 5 heures peut bloquer Spark même si sa réserve hebdomadaire n’est pas épuisée. Si votre compte ne fournit pas les limites Spark, le widget les indique comme indisponibles.
 
 ### L’essentiel en un regard
 

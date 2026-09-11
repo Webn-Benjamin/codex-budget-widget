@@ -1,4 +1,8 @@
 ﻿$script:english = @{
+ "Spark : limite 5 h atteinte · attendre le reset"="Spark: 5-hour limit reached · wait for reset"
+ "Spark · 5 h restantes"="Spark · 5-hour quota left"
+ "Limite 5 h indisponible"="5-hour limit unavailable"
+ "Quota Spark indisponible · réessaie plus tard"="Spark quota unavailable · try again later"
  "Choisis au moins un jour travaillé."="Choose at least one working day."
  "Planning enregistré · recalcul en cours…"="Schedule saved · recalculating…"
  "Enregistrement impossible · réessaie dans un instant."="Could not save · please try again."
