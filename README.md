@@ -59,6 +59,10 @@ If the start of the day was not recorded, the main figure switches to **Disponib
 
 Figures follow the precision and refresh timing provided by Codex. Days and reset times automatically follow your **Windows time zone**, including daylight saving time. A time-zone change is picked up at the next refresh. History is regrouped by local day; the actual reset instant stays unchanged. The widget helps you plan; it does not stop Codex when you reach your target.
 
+### Report a problem
+
+Open Settings and scroll to **Diagnostics**. The read-only console shows connection steps, the selected source, unavailable quotas and error codes. Click **Copy report** and include it with your bug report. The report contains the widget version, time zone and up to 40 recent events from the current monitor session. It does not include raw server messages, authentication tokens, account emails or conversation content. A new session starts when the monitor restarts.
+
 ### Your data
 
 History and preferences are stored locally in the widget’s `data` folder. Usage is read through your installed Codex executable (CLI or desktop bundle); the monitor does not make model requests. Monitoring pauses when the widget is closed or the PC sleeps. If a reading cannot be refreshed, the widget shows an offline state and retries automatically.
@@ -114,6 +118,10 @@ Le budget journalier répartit les 100 % hebdomadaires sur vos jours de travail.
 Si le début de journée n’a pas été enregistré, le chiffre principal devient **Disponible aujourd’hui**. Il correspond au budget débloqué par votre planning, moins la consommation globale du cycle. C’est un solde de planning, pas une reconstitution de l’utilisation depuis minuit. Avec sept jours travaillés, deux jours débloqués et 17 % consommés, ce solde est d’environ **11,57 %**, avec **83 %** restants au total.
 
 La précision et la fraîcheur des chiffres dépendent des relevés fournis par Codex. Les journées et les horaires de renouvellement suivent automatiquement le **fuseau horaire de Windows**, avec les changements d’heure. Un changement de fuseau est pris en compte à la prochaine actualisation. L’historique est regroupé selon les journées locales ; l’instant réel du renouvellement ne change pas. Le widget vous aide à gérer votre budget ; il ne bloque pas Codex lorsque vous atteignez votre objectif.
+
+### Signaler un problème
+
+Ouvrez les réglages et descendez jusqu’à **Diagnostic**. La console en lecture seule affiche les étapes de connexion, la source choisie, les quotas indisponibles et les codes d’erreur. Cliquez sur **Copier le rapport** et joignez-le à votre signalement. Le rapport contient la version du widget, le fuseau horaire et jusqu’à 40 événements récents de la session du moniteur. Les messages bruts du serveur, jetons de connexion, adresses e-mail du compte et conversations sont exclus. Une nouvelle session commence au redémarrage du moniteur.
 
 ### Vos données
 

@@ -1,4 +1,17 @@
 ﻿$script:english = @{
+ "Diagnostic"="Diagnostics"
+ "Copier le rapport"="Copy report"
+ "À joindre à votre signalement de bug"="Include this report with your bug report"
+ "Source choisie"="Selected source"
+ "Recherche de Codex"="Finding Codex"
+ "Connexion établie"="Connected"
+ "Lecture des quotas"="Reading quotas"
+ "Quotas reçus"="Quotas received"
+ "Quota indisponible"="Quota unavailable"
+ "Erreur"="Error"
+ "En attente du premier diagnostic…"="Waiting for the first diagnostic…"
+ "Copié !"="Copied!"
+ "Copie impossible"="Could not copy"
  "Automatique"="Automatic"
  "Source des quotas"="Quota source"
  "Choix enregistré automatiquement"="Selection saved automatically"
@@ -74,6 +87,10 @@ function Set-Language([string]$value, [switch]$Persist) {
  }
  $script:language=$value
  Update-SourceChoices
+ $ui.DiagnosticLabel.Text=(T 'Diagnostic')
+ $ui.DiagnosticHint.Text=(T 'À joindre à votre signalement de bug')
+ $ui.CopyDiagnostic.Content=(T 'Copier le rapport')
+ Update-Diagnostic
  foreach ($code in @('fr','en')) {
   $button=$ui[('Lang'+$code.ToUpper())]
   $button.Background=if ($value -eq $code) { '#303842' } else { 'Transparent' }

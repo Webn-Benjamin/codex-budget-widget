@@ -56,3 +56,13 @@ $ui.SourceChoice.SelectedIndex=1
 $ui.SourceChoice.SelectedIndex=1
 Assert ((Get-Content (Join-Path $dataDir 'source.json') -Raw|ConvertFrom-Json).source -eq 'windows') 'Repeated source selection failed'
 Write-Output 'PASS: explicit source persistence, refresh, stale response rejection, FR/EN and repeated selection.'
+
+@{version='1.2.2';entries=@(@{at=1800000000;event='error';source='WSL / Debian';stage='account/read';code='read_failed';rpc_code=-32000})}|ConvertTo-Json -Depth 5|Set-Content -LiteralPath (Join-Path $dataDir 'diagnostics.json') -Encoding UTF8
+Update-Diagnostic
+Assert ($ui.DiagnosticConsole.Text -like '*WSL / Debian*RPC -32000*') 'Support details missing'
+Assert ($ui.DiagnosticConsole.IsReadOnly) 'Console must be read-only'
+Set-Language en
+Assert ((Get-DiagnosticReport) -like '*Error*') 'English report missing'
+Set-Language fr
+Assert ((Get-DiagnosticReport) -like '*Erreur*') 'French report missing'
+Write-Output 'PASS: diagnostic report, error details, read-only console, FR/EN.'

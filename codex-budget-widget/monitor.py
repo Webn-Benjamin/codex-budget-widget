@@ -13,6 +13,7 @@ import time
 from budget import parse, calculate, validate_workdays, DEFAULT_WORKDAYS, short_window
 from client import Client, ClientError
 from wsl_client import list_wsl
+from diagnostics import Journal
 
 
 def read_source(folder):
@@ -67,6 +68,7 @@ def main():
     p.add_argument('--once', action='store_true')
     args = p.parse_args()
     args.data.mkdir(parents=True, exist_ok=True)
+    journal = Journal(args.data)
     status = args.data / 'status.json'
     client, parent = None, None
     selection = 'auto'
@@ -91,8 +93,11 @@ def main():
                     client.close()
                     client = None
                 if client is None:
+                    journal.add('connecting', selection, 'discovery')
                     client = Client(selection)
                     active_selection = selection
+                    journal.add('connected', client.source, 'initialize')
+                journal.add('reading', client.source, 'account/rateLimits/read')
                 payload = client.read_limits()
                 result = collect(args.data, payload, time.time())
                 result['source'] = client.source
@@ -101,8 +106,20 @@ def main():
                 for entry in result['models'].values():
                     entry['source'] = client.source
                 atomic_json(status, result)
+                for model, entry in result['models'].items():
+                    if not entry['ok']:
+                        journal.add('unavailable', client.source, 'parse', model + '_weekly_unavailable')
+                if not result['models']['spark']['short'].get('ok'):
+                    journal.add('unavailable', client.source, 'parse', 'spark_5h_unavailable')
+                if result['models']['codex']['ok'] or result['models']['spark']['ok']:
+                    journal.add('quotas_ok', client.source, 'refresh')
                 delay = 60
             except Exception as exc:
+                journal.add('error', client.source if client else selection,
+                            exc.stage if isinstance(exc, ClientError) else getattr(client, 'stage', 'refresh'),
+                            exc.code if isinstance(exc, ClientError) else 'os_error' if isinstance(exc, OSError) else 'read_failed',
+                            getattr(exc, 'rpc_code', None), getattr(exc, 'winerror', None) or getattr(exc, 'errno', None),
+                            getattr(exc, 'exit_code', None))
                 # Preserve the last successful observation, but mark it unavailable.
                 try:
                     previous = json.loads(status.read_text(encoding='utf-8'))
@@ -114,8 +131,9 @@ def main():
                     entry['error_code'] = exc.code if isinstance(exc, ClientError) else 'read_failed'
                     if 'short' in entry:
                         entry['short']['ok'] = False
-                previous.update(ok=False, source=client.source if client else None, error_code=exc.code if isinstance(exc, ClientError) else 'read_failed', error=str(exc) if isinstance(exc, (ValueError, RuntimeError, TimeoutError))
-                                else 'Actualisation impossible. Nouvelle tentative dans une minute.')
+                previous.update(ok=False, source=client.source if client else None,
+                                error_code=exc.code if isinstance(exc, ClientError) else 'read_failed',
+                                error=exc.code if isinstance(exc, ClientError) else 'read_failed')
                 previous['requested_source'] = selection
                 previous['available_sources'] = available_sources
                 atomic_json(status, previous)

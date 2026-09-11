@@ -8,11 +8,15 @@ import threading
 import time
 import platform
 from wsl_client import find_wsl
+from diagnostics import VERSION
 
 
 class ClientError(RuntimeError):
-    def __init__(self, code):
+    def __init__(self, code, stage='discovery', rpc_code=None, exit_code=None):
         self.code = code
+        self.stage = stage
+        self.rpc_code = rpc_code
+        self.exit_code = exit_code
         super().__init__(code)
 
 
@@ -65,6 +69,7 @@ class Client:
             if found is None:
                 raise ClientError('wsl_missing' if selection.startswith('wsl:') else 'codex_missing') from None
             command, self.source = found
+        self.stage = 'launch'
         self.proc = subprocess.Popen(command,
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
             text=True, encoding='utf-8', creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
@@ -74,7 +79,7 @@ class Client:
         self.reader.start()
         try:
             self.call('initialize', {'clientInfo': {'name': 'codex_budget_widget',
-                'title': 'Budget Codex', 'version': '1.2.1'}})
+                'title': 'Budget Codex', 'version': VERSION}})
             self._write({'method': 'initialized'})
         except Exception:
             self.close()
@@ -97,6 +102,7 @@ class Client:
     def call(self, method, params=None):
         if method not in ('initialize', 'account/read', 'account/rateLimits/read'):
             raise ValueError('Méthode non autorisée par ce client en lecture seule.')
+        self.stage = method
         self.counter += 1
         request = {'id': self.counter, 'method': method}
         if params is not None:
@@ -109,20 +115,22 @@ class Client:
             except queue.Empty:
                 break
             if message is None:
-                raise RuntimeError('Connexion Codex interrompue.')
+                raise ClientError('connection_closed', method, exit_code=self.proc.poll())
             if message.get('id') == self.counter:
                 if 'error' in message:
                     # Do not persist arbitrary server errors that might contain personal data.
-                    raise ClientError('read_failed')
+                    number = message['error'].get('code') if isinstance(message['error'], dict) else None
+                    code = 'method_unsupported' if number == -32601 else 'auth_rejected' if number in (401, 403) else 'read_failed'
+                    raise ClientError(code, method, number if type(number) is int else None)
                 return message['result']
-        raise TimeoutError('Codex ne répond pas. Nouvelle tentative dans une minute.')
+        raise ClientError('timeout', method)
 
     def read_limits(self):
         account = self.call('account/read', {'refreshToken': False}).get('account')
         if account is None:
-            raise ClientError('wsl_login_required' if getattr(self, 'source', '').startswith('WSL / ') else 'login_required')
+            raise ClientError('wsl_login_required' if getattr(self, 'source', '').startswith('WSL / ') else 'login_required', 'account/read')
         if account.get('type') == 'apiKey':
-            raise ClientError('api_key')
+            raise ClientError('api_key', 'account/read')
         return self.call('account/rateLimits/read')
 
     def close(self):

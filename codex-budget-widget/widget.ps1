@@ -165,6 +165,15 @@ if (-not $ownsMutex -and -not $Preview) { $mutex.Dispose(); exit }
      <CheckBox x:Name="Pin" Content="Toujours au premier plan" IsChecked="True" Foreground="#F4F7FA"/>
      <TextBlock x:Name="Weekly" Text="Quota hebdomadaire : —" Foreground="#AFBBC8" Margin="0,15,0,4"/>
      <TextBlock x:Name="Reset" Text="Reset : —" Foreground="#AFBBC8"/>
+     <Border BorderBrush="#303842" BorderThickness="0,1,0,0" Margin="0,16,0,0" Padding="0,12,0,0">
+      <StackPanel>
+       <DockPanel><TextBlock x:Name="DiagnosticLabel" Text="Diagnostic" FontWeight="SemiBold" VerticalAlignment="Center"/><Button x:Name="CopyDiagnostic" Content="Copier le rapport" Style="{StaticResource ControlButton}" HorizontalAlignment="Right" Background="#22282F" FontSize="10"/></DockPanel>
+       <TextBlock x:Name="DiagnosticHint" Text="À joindre à votre signalement de bug" Foreground="#AFBBC8" FontSize="10" Margin="0,5,0,8"/>
+       <Border Background="#12161A" BorderBrush="#38414B" BorderThickness="1" CornerRadius="6" Padding="8">
+        <TextBox x:Name="DiagnosticConsole" IsReadOnly="True" Height="128" Background="Transparent" BorderThickness="0" Foreground="#C8D2DC" FontFamily="Consolas" FontSize="10" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" SelectionBrush="#41695C" AutomationProperties.Name="Diagnostic"/>
+       </Border>
+      </StackPanel>
+     </Border>
     </StackPanel>
    </Border>
   </StackPanel>
@@ -174,7 +183,7 @@ if (-not $ownsMutex -and -not $Preview) { $mutex.Dispose(); exit }
 '@
 $window = [Windows.Markup.XamlReader]::Load([Xml.XmlNodeReader]::new($xaml))
 $ui = @{}
-'SourceLabel','SourceChoice','SourceHint','ModelCodex','ModelSpark','ShortPanel','ShortLabel','ShortValue','ShortFill','ShortReset','LangFR','LangEN','DailyLabel','BonusLabel','GlobalLabel','DaysLabel','UsageLabel','GlobalRemaining','DragArea','ConnectionDot','SettingsButton','Minimize','Close','Date','Used','Total','Track','Fill','Context','Daily','Bonus','Status','Refresh','SettingsPanel','SaveDays','Workdays','Pin','Weekly','Reset' | ForEach-Object { $ui[$_] = $window.FindName($_) }
+'DiagnosticLabel','DiagnosticHint','DiagnosticConsole','CopyDiagnostic','SourceLabel','SourceChoice','SourceHint','ModelCodex','ModelSpark','ShortPanel','ShortLabel','ShortValue','ShortFill','ShortReset','LangFR','LangEN','DailyLabel','BonusLabel','GlobalLabel','DaysLabel','UsageLabel','GlobalRemaining','DragArea','ConnectionDot','SettingsButton','Minimize','Close','Date','Used','Total','Track','Fill','Context','Daily','Bonus','Status','Refresh','SettingsPanel','SaveDays','Workdays','Pin','Weekly','Reset' | ForEach-Object { $ui[$_] = $window.FindName($_) }
 $window.Left = [Math]::Max(0, [Windows.SystemParameters]::WorkArea.Right - 380)
 $window.Top = [Math]::Max(0, [Windows.SystemParameters]::WorkArea.Bottom - 398)
 $settings = Join-Path $dataDir 'window.json'
@@ -192,7 +201,7 @@ $ui.Close.Add_Click({ $window.Close() })
 $ui.Minimize.Add_Click({ $window.WindowState = 'Minimized' })
 $ui.SettingsButton.Add_Click({
  if ($ui.SettingsPanel.Visibility -eq 'Collapsed') {
-  $ui.SettingsPanel.Visibility = 'Visible'; Resize-Widget
+  $ui.SettingsPanel.Visibility = 'Visible'; Update-Diagnostic; Resize-Widget
   Resize-Widget
  } else { $ui.SettingsPanel.Visibility = 'Collapsed'; Resize-Widget }
 })
@@ -320,7 +329,7 @@ function Show-State($s) {
 function Resize-Widget {
  $height=420
  if ($script:model -eq 'spark') { $height+=112 }
- if ($ui.SettingsPanel.Visibility -eq 'Visible') { $height+=315 }
+ if ($ui.SettingsPanel.Visibility -eq 'Visible') { $height+=535 }
  $height=[Math]::Min($height,[Windows.SystemParameters]::WorkArea.Height)
  $window.Height=$height
  $window.Top=[Math]::Max(0,[Math]::Min($window.Top,[Windows.SystemParameters]::WorkArea.Bottom-$height))
@@ -402,7 +411,40 @@ function Show-Envelope($envelope) {
  if (-not $entry.ok -and $null -ne $script:pendingDays) { $script:pendingDays=$null }
  Show-State $entry
 }
+function Get-DiagnosticReport {
+ $lines=[Collections.Generic.List[string]]::new()
+ $lines.Add('Budget Codex 1.2.2')
+ $lines.Add((T 'Source choisie')+': '+$script:sourceSelection)
+ $lines.Add('Time zone: '+[TimeZoneInfo]::Local.Id)
+ $lines.Add('')
+ $events=@{connecting='Recherche de Codex';connected='Connexion établie';reading='Lecture des quotas';quotas_ok='Quotas reçus';unavailable='Quota indisponible';error='Erreur'}
+ try {
+  $log=Get-Content -LiteralPath (Join-Path $dataDir 'diagnostics.json') -Raw -Encoding UTF8|ConvertFrom-Json
+  if ($log.version) { $lines.Add('Monitor: '+$log.version) }
+  foreach ($entry in @($log.entries)) {
+   $stamp=[DateTimeOffset]::FromUnixTimeSeconds([long]$entry.at).ToLocalTime().ToString('HH:mm:ss')
+   $label=if ($events.ContainsKey([string]$entry.event)) { T $events[[string]$entry.event] } else { T 'Erreur' }
+   $line='['+$stamp+'] '+$label+' · '+$entry.source+' · '+$entry.stage
+   if ($entry.code) { $line+=' · '+$entry.code }
+   if ($null -ne $entry.rpc_code) { $line+=' · RPC '+$entry.rpc_code }
+   if ($null -ne $entry.system_code) { $line+=' · OS '+$entry.system_code }
+   if ($null -ne $entry.exit_code) { $line+=' · Exit '+$entry.exit_code }
+   $lines.Add($line)
+  }
+  if (-not $log.entries) { $lines.Add((T 'En attente du premier diagnostic…')) }
+ } catch { $lines.Add((T 'En attente du premier diagnostic…')) }
+ return $lines -join [Environment]::NewLine
+}
+function Update-Diagnostic {
+ $text=Get-DiagnosticReport
+ if ($ui.DiagnosticConsole.Text -ne $text) { $ui.DiagnosticConsole.Text=$text; $ui.DiagnosticConsole.ScrollToEnd() }
+}
+$ui.CopyDiagnostic.Add_Click({
+ try { [Windows.Clipboard]::SetText((Get-DiagnosticReport)); $ui.CopyDiagnostic.Content=(T 'Copié !') }
+ catch { $ui.CopyDiagnostic.Content=(T 'Copie impossible') }
+})
 function Update-Widget {
+ Update-Diagnostic
  $file=Join-Path $dataDir 'status.json'
  if (Test-Path -LiteralPath $file) { try { $s=Get-Content -LiteralPath $file -Raw -Encoding UTF8|ConvertFrom-Json } catch { return }; Show-Envelope $s }
 }
