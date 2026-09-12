@@ -100,7 +100,7 @@ def calculate(rows, workdays=None, zone=None):
         after = [r['used'] for r in rows if r['at'] >= timestamp]
         return (before[-1] if before else 0, after[0] if after else used)
 
-    # Carry over each day's positive remainder; yesterday's overspend is not a debt.
+    # Carry both unused allowance and overspend through the current weekly cycle.
     # Bounds deliberately remain conservative when a gap spans several days.
     opening_low, opening_high = 0, 0
     previous_low, previous_high = 0, 0
@@ -111,17 +111,19 @@ def calculate(rows, workdays=None, zone=None):
         spent_low = max(0, end_low - previous_high)
         spent_high = max(0, end_high - previous_low)
         day_cap = allowances.get(day, 0)
-        opening_low = max(0, opening_low + day_cap - spent_high)
-        opening_high = max(0, opening_high + day_cap - spent_low)
+        opening_low = opening_low + day_cap - spent_high
+        opening_high = opening_high + day_cap - spent_low
         previous_low, previous_high = end_low, end_high
         day += timedelta(days=1)
     if revised:
         # A quota revision invalidates all earlier daily deltas, including the first day.
         previous_low, previous_high = boundary(datetime.combine(now.date(), daytime(), zone).timestamp())
-        opening_low, opening_high = 0, sum(value for d, value in allowances.items() if d < now.date())
+        unlocked_before = sum(value for d, value in allowances.items() if d < now.date())
+        opening_low, opening_high = unlocked_before - previous_high, unlocked_before - previous_low
     today_low, today_high = used - previous_high, used - previous_low
-    bonus_low = min(remaining, max(0, opening_low - max(0, today_high - cap)))
-    bonus_high = min(remaining, max(0, opening_high - max(0, today_low - cap)))
+    carry_low = min(remaining, opening_low - max(0, today_high - cap))
+    carry_high = min(remaining, opening_high - max(0, today_low - cap))
+    bonus_low, bonus_high = max(0, carry_low), max(0, carry_high)
     balance_low = min(remaining, max(0, cap - today_high + opening_low))
     balance_high = min(remaining, max(0, cap - today_low + opening_high))
     balance_known = math.isclose(balance_low, balance_high, abs_tol=1e-8)
@@ -130,6 +132,7 @@ def calculate(rows, workdays=None, zone=None):
     return dict(timezone=str(zone), updated=current['at'], used=used, remaining=100-used, available=available,
                 today_low=max(0, today_low), today_high=max(0, today_high),
                 bonus_low=bonus_low, bonus_high=bonus_high,
+                carry_low=carry_low, carry_high=carry_high,
                 balance_known=balance_known,
                 uncertain=previous_low != previous_high, cap=cap,
                 opening_bonus_low=opening_low, opening_bonus_high=opening_high,

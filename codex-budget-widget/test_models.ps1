@@ -85,3 +85,25 @@ $state.remaining=99;$state.used=1;$state.working_today=$true
 Show-State $state
 Assert ($ui.Used.FontSize -eq 42) 'Numeric display size not restored'
 Write-Output 'PASS: empty daily budget, remaining weekly quota, day off, weekly exhaustion and numeric recovery.'
+
+$state.uncertain=$false;$state.today_low=2;$state.cap=20
+$state.opening_bonus_low=-10;$state.opening_bonus_high=-10
+$state | Add-Member carry_low -10 -Force
+$state | Add-Member carry_high -10 -Force
+$state | Add-Member available 8 -Force
+Show-State $state
+Assert ($ui.Total.Text -eq ' / 10 %') 'Deficit not deducted from daily total'
+Assert ($ui.BonusLabel.Text -eq 'Malus' -and $ui.Bonus.Text -eq '-10 %') 'French deficit missing'
+Set-Language en
+Assert ($ui.BonusLabel.Text -eq 'Deficit' -and $ui.Bonus.Text -eq '-10 %') 'English deficit missing'
+Assert ($ui.Context.Text -eq 'Daily budget reduced by carried deficit') 'Deficit explanation missing'
+$state.opening_bonus_low=-40;$state.opening_bonus_high=-40;$state.available=0
+Show-State $state
+Assert ($ui.Total.Text -eq ' / 0 %') 'Negative daily total displayed'
+$state.uncertain=$true;$state.used=99;$state.remaining=1
+Show-State $state
+Assert ($ui.BonusLabel.Text -eq 'Deficit' -and $ui.Bonus.Text.StartsWith('-')) 'Snapshot deficit hidden'
+$state.used=0;$state.remaining=100
+Show-State $state
+Assert ($ui.BonusLabel.Text -eq 'Bonus' -and $ui.Bonus.Text.StartsWith('+')) 'Bonus not restored'
+Write-Output 'PASS: signed carry, daily total, deep deficit, snapshots and FR/EN.'

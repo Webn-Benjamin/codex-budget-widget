@@ -100,19 +100,19 @@ class BudgetTests(unittest.TestCase):
         self.assertIsNone(r['pace'])
         self.assertEqual(r['today_low'],1)
 
-    def test_yesterday_overspend_does_not_reduce_new_daily_target(self):
+    def test_yesterday_overspend_reduces_new_daily_budget(self):
         r=calculate([row(9,17,23),row(10,17,0),row(10,19)],list(range(7)))
-        self.assertAlmostEqual(r['available'],100/7-2)
+        self.assertAlmostEqual(r['available'],200/7-19)
         self.assertEqual(r['bonus_high'],0)
 
     def test_today_consumption_and_known_bonus(self):
         r=calculate([row(9,10,23),row(10,10,0),row(10,12)],list(range(7)))
         self.assertAlmostEqual(r['available'],100/7-2+(100/7-10))
 
-    def test_unused_day_after_overspend_earns_full_bonus(self):
+    def test_unused_day_repays_deficit_before_earning_bonus(self):
         r=calculate([row(9,0,0),row(10,30,0),row(11,30,0),row(11,32)])
-        self.assertAlmostEqual(r['opening_bonus_low'],20)
-        self.assertAlmostEqual(r['available'],38)
+        self.assertAlmostEqual(r['opening_bonus_low'],10)
+        self.assertAlmostEqual(r['available'],28)
 
     def test_completed_cycle_exhausted_never_creates_extra_quota(self):
         r=calculate([row(15,100)],list(range(7)))
@@ -130,7 +130,7 @@ class BudgetTests(unittest.TestCase):
             for day in range(9,15):
                 cost=rng.randint(0,min(30,100-spent_total))
                 cap=target if datetime(2026,9,day).weekday() in workdays else 0
-                bonus=max(0,bonus+cap-cost)
+                bonus=bonus+cap-cost
                 spent_total+=cost
                 samples.append(row(day+1,spent_total,0))
             cost=rng.randint(0,min(25,100-spent_total))
@@ -149,5 +149,15 @@ class BudgetTests(unittest.TestCase):
             expected_bonus=min(100-spent_total,max(0,bonus-max(0,cost-cap)))
             self.assertLessEqual(r['bonus_low'],expected_bonus+1e-8)
             self.assertGreaterEqual(r['bonus_high']+1e-8,expected_bonus)
+
+    def test_deficit_reduces_today_and_persists_over_rest_days(self):
+        r=calculate([row(9,0,0),row(10,30,0),row(10,32)])
+        self.assertEqual((r['available'],r['carry_low'],r['carry_high']), (8,-10,-10))
+        r=calculate([row(9,0,0),row(10,90,0),row(11,90,0),row(12,90,0),row(13,90,0),row(14,90,0)])
+        self.assertEqual((r['opening_bonus_low'],r['available']),(-30,0))
+
+    def test_reset_discards_old_deficit(self):
+        r=calculate([row(10,90),row(16,2,9,reset=ts(23,0))])
+        self.assertEqual((r['available'],r['carry_low'],r['carry_high']), (18,0,0))
 
 if __name__=='__main__': unittest.main()

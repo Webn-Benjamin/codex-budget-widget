@@ -244,7 +244,7 @@ $ui.SaveDays.Add_Click({
  }
 })
 function Format-Points($value) { return ([double]$value).ToString('0.#',(Get-DisplayCulture)) }
-function Get-PlanningBalance($s) {
+function Get-PlanningBalance($s, [switch]$Signed) {
  [TimeZoneInfo]::ClearCachedData()
  $zone=[TimeZoneInfo]::Local
  $first=[TimeZoneInfo]::ConvertTime([DateTimeOffset]::FromUnixTimeSeconds([long]$s.reset-604800),$zone).Date
@@ -254,9 +254,18 @@ function Get-PlanningBalance($s) {
   if ($s.workdays -contains (([int]$date.DayOfWeek+6)%7)) { $count++ }
  }
  $unlocked=[Math]::Min(100.0,$count*[double]$s.standard_cap)
+ if ($Signed) { return $unlocked-[double]$s.used }
  return [Math]::Min([double]$s.remaining,[Math]::Max(0.0,$unlocked-[double]$s.used))
 }
+function Show-Carry([double]$value) {
+ $negative=$value -lt -0.000001
+ $ui.BonusLabel.Text=if ($negative) { (T 'Malus') } else { 'Bonus' }
+ $ui.Bonus.Foreground=if ($negative) { '#F19D94' } else { '#F0CA8D' }
+ $ui.Bonus.Text=if ($negative) { "$(Format-Points $value) %" } else { "+$(Format-Points ([Math]::Max(0,$value))) %" }
+ $ui.Bonus.ToolTip=(T "Le report positif augmente le budget ; le malus le réduit jusqu’au reset hebdomadaire.")
+}
 function Show-State($s) {
+ Show-Carry 0
  $script:lastState=$s
  $ui.Status.ToolTip=$s.source
  Show-Short $s.short
@@ -298,24 +307,28 @@ function Show-State($s) {
  $knownToday=-not $s.uncertain
  $ui.Used.Text=if ($knownToday) { "$(Format-Points $s.today_low) %" } else { "≥ $(Format-Points $s.today_low) %" }
  $ui.Used.FontSize=if ($ui.Used.Text.Length -gt 7) { 36 } else { 42 }
- $ui.Bonus.Text=if ([Math]::Abs($s.bonus_low-$s.bonus_high) -lt 0.000001) { "+$(Format-Points $s.bonus_low) %" } else { '—' }
+ $carryLow=if ($null -ne $s.carry_low) { $s.carry_low } else { $s.bonus_low }
+ $carryHigh=if ($null -ne $s.carry_high) { $s.carry_high } else { $s.bonus_high }
+ if ([Math]::Abs($carryLow-$carryHigh) -lt 0.000001) { Show-Carry $carryLow } else { $ui.Bonus.Text='—' }
  $ui.ConnectionDot.Fill='#6DE0B9'
  $ui.Used.Foreground='#6DE0B9'; $ui.Fill.Background='#6DE0B9'
  if ($knownBonus -and $knownToday) {
-  $total=[Math]::Min($s.cap+$s.opening_bonus_low,$s.remaining+$s.today_low)
+  $total=[Math]::Max(0.0,[Math]::Min($s.cap+$s.opening_bonus_low,$s.remaining+$s.today_low))
   $ui.Total.Text=" / $(Format-Points $total) %"
   $fraction=if ($total -gt 0) { [Math]::Min(1.0,[double]$s.today_low/[double]$total) } else { 0 }
   $ui.Fill.Width=312*$fraction
   if ($s.available -le 0) { $ui.Used.Foreground='#F19D94'; $ui.Fill.Background='#F19D94'; $ui.Context.Text=(T (T "Budget disponible épuisé pour ce jour")) }
   elseif ($fraction -ge .8) { $ui.Used.Foreground='#F0CA8D'; $ui.Fill.Background='#F0CA8D'; $ui.Context.Text=(T (T "Bientôt la limite du jour · bonus inclus")) }
   else { $ui.Context.Text=if ($s.working_today) { (T (T "Budget total du jour, bonus inclus")) } else { (T (T "Jour de repos · utilisation du bonus uniquement")) } }
+  if ($s.available -gt 0 -and $s.opening_bonus_low -lt 0) { $ui.Context.Text=(T "Budget du jour réduit par le malus reporté") }
  } else {
   $planned=Get-PlanningBalance $s
   $plannedBonus=[Math]::Max(0.0,$planned-[double]$s.cap)
   $ui.UsageLabel.Text=(T "Disponible aujourd’hui")
   $ui.Used.Text="$(Format-Points $planned) %"
   $ui.Total.Text=''
-  $ui.Bonus.Text="+$(Format-Points $plannedBonus) %"
+  $signed=Get-PlanningBalance $s -Signed
+  if ($signed -lt 0) { Show-Carry $signed } else { Show-Carry $plannedBonus }
   $ui.Fill.Width=312*[Math]::Min(1.0,$planned/[Math]::Max(0.000001,[double]$s.cap+$plannedBonus))
   $ui.Context.Text=(T (T "Solde du planning − consommation globale"))
   if ($planned -le 0) {
@@ -428,7 +441,7 @@ function Show-Envelope($envelope) {
 }
 function Get-DiagnosticReport {
  $lines=[Collections.Generic.List[string]]::new()
- $lines.Add('Budget Codex 1.2.4')
+ $lines.Add('Budget Codex 1.2.5')
  $lines.Add((T 'Source choisie')+': '+$script:sourceSelection)
  $lines.Add('Time zone: '+[TimeZoneInfo]::Local.Id)
  $lines.Add('')

@@ -53,6 +53,8 @@ Drag the header to move the widget. You can keep it on top of other windows, min
 
 ### Understanding your budget
 
+**Overspending carries over too.** A negative balance appears as **Deficit** and reduces later daily budgets until it is repaid or the weekly cycle resets. For example, with 20% per working day, using 30% on the first day leaves 10% available on the next working day. Days off do not erase the deficit; the real remaining weekly quota is unchanged.
+
 The daily target divides the weekly 100% across your selected working days. Bonus is unused allowance carried forward within the same reset cycle; it is **not extra quota granted by OpenAI**. For example, a 15% daily target plus 2% carried over gives a 17% allowance.
 
 If the start of the day was not recorded, the main figure switches to **Disponible aujourd’hui** (available today). It uses the budget unlocked by your work schedule minus total usage in the current cycle. This is a planning balance, not a reconstruction of usage since midnight. With seven working days, two days unlocked and 17% used, the planning balance is approximately **11.57%**, with **83%** remaining overall.
@@ -114,6 +116,8 @@ Déplacez le widget par sa barre de titre. Vous pouvez le garder au premier plan
 **Choisissez FR ou EN à côté du bouton des réglages.** La langue change immédiatement et votre choix est conservé. Au premier lancement, le widget suit la langue de Windows : français, ou anglais pour les autres langues.
 
 ### Comprendre les chiffres
+
+**Le dépassement est aussi reporté.** Un solde négatif apparaît en **Malus** et réduit les budgets suivants jusqu’à son remboursement ou au reset hebdomadaire. Par exemple, avec 20 % par jour travaillé, consommer 30 % le premier jour laisse 10 % disponibles le jour travaillé suivant. Les jours de repos n’effacent pas le malus ; le quota hebdomadaire réel restant reste inchangé.
 
 Le budget journalier répartit les 100 % hebdomadaires sur vos jours de travail. Le bonus correspond au budget non utilisé reporté au sein du même cycle : **ce n’est pas du quota supplémentaire offert par OpenAI**. Par exemple, un objectif quotidien de 15 % avec 2 % reportés donne un budget de 17 %.
 
