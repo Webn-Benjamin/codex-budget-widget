@@ -1,4 +1,10 @@
 ﻿$script:english = @{
+ "Budget du jour"="Daily budget"
+ "Quota hebdomadaire"="Weekly quota"
+ "épuisé"="used up"
+ "Jour de repos"="Day off"
+ "Il reste {0} % sur la semaine"="You still have {0}% left this week"
+ "En attente du renouvellement hebdomadaire"="Waiting for the weekly reset"
  "Budget sans historique de compte"="Budget without account history"
  "Diagnostic"="Diagnostics"
  "Copier le rapport"="Copy report"

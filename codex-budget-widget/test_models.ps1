@@ -66,3 +66,22 @@ Assert ((Get-DiagnosticReport) -like '*Error*') 'English report missing'
 Set-Language fr
 Assert ((Get-DiagnosticReport) -like '*Erreur*') 'French report missing'
 Write-Output 'PASS: diagnostic report, error details, read-only console, FR/EN.'
+
+Set-Language en
+$state=[pscustomobject]@{ok=$true;updated=[DateTimeOffset]::UtcNow.ToUnixTimeSeconds();reset=[DateTimeOffset]::UtcNow.ToUnixTimeSeconds()+432000;remaining=47;used=53;standard_cap=(100.0/7);cap=(100.0/7);workdays=@(0,1,2,3,4,5,6);working_today=$true;uncertain=$true;today_low=0;today_high=53;opening_bonus_low=0;opening_bonus_high=100;bonus_low=0;bonus_high=100}
+Show-State $state
+Assert ($ui.Used.Text -eq "Daily budget`nused up".Replace("`n",[Environment]::NewLine)) 'Zero daily budget label missing'
+Assert ($ui.Context.Text -eq 'You still have 47% left this week') 'Weekly availability not clarified'
+Assert ($ui.GlobalRemaining.Text -like '47*') 'Weekly quota changed'
+Set-Language fr
+Assert ($ui.Used.Text -like 'Budget du jour*épuisé') 'French exhausted label missing'
+$state.working_today=$false
+Show-State $state
+Assert ($ui.Used.Text -eq 'Jour de repos') 'Day off described as overspending'
+$state.remaining=0;$state.used=100
+Show-State $state
+Assert ($ui.Used.Text -like 'Quota hebdomadaire*épuisé') 'Weekly exhaustion confused with daily budget'
+$state.remaining=99;$state.used=1;$state.working_today=$true
+Show-State $state
+Assert ($ui.Used.FontSize -eq 42) 'Numeric display size not restored'
+Write-Output 'PASS: empty daily budget, remaining weekly quota, day off, weekly exhaustion and numeric recovery.'

@@ -318,6 +318,21 @@ function Show-State($s) {
   $ui.Bonus.Text="+$(Format-Points $plannedBonus) %"
   $ui.Fill.Width=312*[Math]::Min(1.0,$planned/[Math]::Max(0.000001,[double]$s.cap+$plannedBonus))
   $ui.Context.Text=(T (T "Solde du planning − consommation globale"))
+  if ($planned -le 0) {
+   $ui.Used.FontSize=23
+   $ui.Used.Foreground='#F0CA8D'
+   if ([double]$s.remaining -le 0) {
+    $ui.Used.Text=(T 'Quota hebdomadaire')+[Environment]::NewLine+(T 'épuisé')
+    $ui.Used.Foreground='#F19D94'
+    $ui.Context.Text=(T 'En attente du renouvellement hebdomadaire')
+   } elseif (-not $s.working_today) {
+    $ui.Used.Text=(T 'Jour de repos')
+    $ui.Context.Text=(T 'Il reste {0} % sur la semaine') -f (Format-Points $s.remaining)
+   } else {
+    $ui.Used.Text=(T 'Budget du jour')+[Environment]::NewLine+(T 'épuisé')
+    $ui.Context.Text=(T 'Il reste {0} % sur la semaine') -f (Format-Points $s.remaining)
+   }
+  }
   $ui.Context.ToolTip=(T (T "Budget débloqué depuis le reset selon les jours cochés, moins toute la consommation du cycle. Le détail consommé depuis minuit reste inconnu."))
  }
  $time=[DateTimeOffset]::FromUnixTimeSeconds([long]$s.updated).ToLocalTime().ToString('HH:mm')
@@ -413,7 +428,7 @@ function Show-Envelope($envelope) {
 }
 function Get-DiagnosticReport {
  $lines=[Collections.Generic.List[string]]::new()
- $lines.Add('Budget Codex 1.2.3')
+ $lines.Add('Budget Codex 1.2.4')
  $lines.Add((T 'Source choisie')+': '+$script:sourceSelection)
  $lines.Add('Time zone: '+[TimeZoneInfo]::Local.Id)
  $lines.Add('')
