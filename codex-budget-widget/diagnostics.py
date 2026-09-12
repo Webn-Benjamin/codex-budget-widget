@@ -3,10 +3,11 @@ import json
 import os
 import time
 
-VERSION = '1.2.2'
-EVENTS = {'connecting', 'connected', 'reading', 'quotas_ok', 'unavailable', 'error'}
+VERSION = '1.2.3'
+EVENTS = {'connecting', 'connected', 'reading', 'quotas_ok', 'snapshot_mode', 'unavailable', 'error'}
 STAGES = {'discovery', 'launch', 'initialize', 'account/read', 'account/rateLimits/read', 'parse', 'refresh', 'settings'}
 CODES = {'codex_missing', 'wsl_missing', 'invalid_source', 'login_required', 'wsl_login_required',
+         'quota_missing', 'weekly_missing', 'used_invalid', 'reset_invalid', 'reset_expired', 'planning_invalid', 'account_identity_missing',
          'api_key', 'read_failed', 'method_unsupported', 'auth_rejected', 'connection_closed',
          'timeout', 'os_error', 'codex_weekly_unavailable', 'spark_weekly_unavailable', 'spark_5h_unavailable'}
 

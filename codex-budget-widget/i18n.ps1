@@ -1,4 +1,5 @@
 ﻿$script:english = @{
+ "Budget sans historique de compte"="Budget without account history"
  "Diagnostic"="Diagnostics"
  "Copier le rapport"="Copy report"
  "À joindre à votre signalement de bug"="Include this report with your bug report"

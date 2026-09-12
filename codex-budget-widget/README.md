@@ -59,6 +59,8 @@ If the start of the day was not recorded, the main figure switches to **Disponib
 
 Figures follow the precision and refresh timing provided by Codex. Days and reset times automatically follow your **Windows time zone**, including daylight saving time. A time-zone change is picked up at the next refresh. History is regrouped by local day; the actual reset instant stays unchanged. The widget helps you plan; it does not stop Codex when you reach your target.
 
+If the CLI provides quotas without an account identifier, the widget still displays the weekly and Spark 5-hour limits. Daily planning uses the current global quota and your workdays. Those unidentified readings are not added to account history, so usage since midnight and historical carryover cannot be reconstructed in this mode.
+
 ### Report a problem
 
 Open Settings and scroll to **Diagnostics**. The read-only console shows connection steps, the selected source, unavailable quotas and error codes. Click **Copy report** and include it with your bug report. The report contains the widget version, time zone and up to 40 recent events from the current monitor session. It does not include raw server messages, authentication tokens, account emails or conversation content. A new session starts when the monitor restarts.
@@ -118,6 +120,8 @@ Le budget journalier répartit les 100 % hebdomadaires sur vos jours de travail.
 Si le début de journée n’a pas été enregistré, le chiffre principal devient **Disponible aujourd’hui**. Il correspond au budget débloqué par votre planning, moins la consommation globale du cycle. C’est un solde de planning, pas une reconstitution de l’utilisation depuis minuit. Avec sept jours travaillés, deux jours débloqués et 17 % consommés, ce solde est d’environ **11,57 %**, avec **83 %** restants au total.
 
 La précision et la fraîcheur des chiffres dépendent des relevés fournis par Codex. Les journées et les horaires de renouvellement suivent automatiquement le **fuseau horaire de Windows**, avec les changements d’heure. Un changement de fuseau est pris en compte à la prochaine actualisation. L’historique est regroupé selon les journées locales ; l’instant réel du renouvellement ne change pas. Le widget vous aide à gérer votre budget ; il ne bloque pas Codex lorsque vous atteignez votre objectif.
+
+Si le CLI fournit les quotas sans identifiant de compte, le widget affiche tout de même les limites hebdomadaires et les 5 heures Spark. Le budget du jour est calculé à partir du quota global et des jours travaillés. Ces relevés ne sont pas ajoutés à un historique de compte : la consommation depuis minuit et le report historique ne peuvent pas être reconstitués dans ce mode.
 
 ### Signaler un problème
 

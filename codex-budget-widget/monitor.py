@@ -10,7 +10,7 @@ from contextlib import closing
 import sys
 import time
 
-from budget import parse, calculate, validate_workdays, DEFAULT_WORKDAYS, short_window
+from budget import parse, calculate, validate_workdays, DEFAULT_WORKDAYS, short_window, QuotaError
 from client import Client, ClientError
 from wsl_client import list_wsl
 from diagnostics import Journal
@@ -36,15 +36,20 @@ def record(folder, row, model="codex"):
     if model not in ("codex", "spark"):
         raise ValueError("Unknown quota model")
     table = "samples" if model == "codex" else "samples_spark"
-    with closing(sqlite3.connect(folder / 'history.sqlite')) as db, db:
-        db.row_factory = sqlite3.Row
-        db.execute(f'CREATE TABLE IF NOT EXISTS {table} (account TEXT, at REAL, reset REAL, used REAL)')
-        db.execute(f'INSERT INTO {table} VALUES (:account, :at, :reset, :used)', row)
-        rows = [dict(r) for r in db.execute(
-            f'SELECT * FROM {table} WHERE account=? AND reset=? ORDER BY at', (row['account'], row['reset']))]
+    if row.get('transient'):
+        rows = [row]
+    else:
+        with closing(sqlite3.connect(folder / 'history.sqlite')) as db, db:
+            db.row_factory = sqlite3.Row
+            db.execute(f'CREATE TABLE IF NOT EXISTS {table} (account TEXT, at REAL, reset REAL, used REAL)')
+            db.execute(f'INSERT INTO {table} VALUES (:account, :at, :reset, :used)', row)
+            rows = [dict(r) for r in db.execute(
+                f'SELECT * FROM {table} WHERE account=? AND reset=? ORDER BY at', (row['account'], row['reset']))]
     config_path = folder / 'workdays.json'
     config = json.loads(config_path.read_text(encoding='utf-8-sig')) if config_path.exists() else {'workdays': DEFAULT_WORKDAYS}
-    return calculate(rows, validate_workdays(config.get('workdays')))
+    result = calculate(rows, validate_workdays(config.get('workdays')))
+    result['snapshot_only'] = bool(row.get('transient'))
+    return result
 
 
 def collect(folder, payload, now):
@@ -52,8 +57,8 @@ def collect(folder, payload, now):
     for model in ('codex', 'spark'):
         try:
             models[model] = dict(ok=True, **record(folder, parse(payload, now, model), model))
-        except ValueError:
-            models[model] = dict(ok=False, updated=now)
+        except ValueError as exc:
+            models[model] = dict(ok=False, updated=now, parse_code=exc.code if isinstance(exc, QuotaError) else 'planning_invalid')
     try:
         models['spark']['short'] = short_window(payload, now)
     except ValueError:
@@ -109,6 +114,9 @@ def main():
                 for model, entry in result['models'].items():
                     if not entry['ok']:
                         journal.add('unavailable', client.source, 'parse', model + '_weekly_unavailable')
+                        journal.add('unavailable', client.source, 'parse', entry['parse_code'])
+                    elif entry.get('snapshot_only'):
+                        journal.add('snapshot_mode', client.source, 'parse', 'account_identity_missing')
                 if not result['models']['spark']['short'].get('ok'):
                     journal.add('unavailable', client.source, 'parse', 'spark_5h_unavailable')
                 if result['models']['codex']['ok'] or result['models']['spark']['ok']:

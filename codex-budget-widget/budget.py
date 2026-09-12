@@ -17,6 +17,12 @@ def local_zone():
 DEFAULT_WORKDAYS = [0, 1, 2, 3, 4]
 
 
+class QuotaError(ValueError):
+    def __init__(self, code):
+        self.code = code
+        super().__init__(code)
+
+
 def validate_workdays(days):
     if not isinstance(days, list) or not days or any(type(d) is not int or d not in range(7) for d in days):
         raise ValueError('Choisir au moins un jour travaillé, du lundi au dimanche.')
@@ -44,19 +50,29 @@ def parse(payload, now, model="codex"):
     if model == "spark":
         payload = dict(payload, rateLimitsByLimitId={"codex": dict(spark_quota(payload), limitId="codex")})
     buckets = payload.get('rateLimitsByLimitId')
-    quota = buckets.get('codex') if buckets is not None else payload.get('rateLimits')
+    quota = buckets.get('codex') if isinstance(buckets, dict) else None
+    if quota is None:
+        quota = payload.get('rateLimits')
     if not quota or quota.get('limitId') not in (None, 'codex'):
-        raise ValueError('Quota Codex indisponible.')
+        raise QuotaError('quota_missing')
     windows = [quota.get(k) for k in ('primary', 'secondary')]
     weekly = next((w for w in windows if w and w.get('windowDurationMins') == 10080), None)
-    if not weekly or not payload.get('accountId'):
-        raise ValueError('Limite hebdomadaire ou compte indisponible.')
+    if not weekly:
+        raise QuotaError('weekly_missing')
     used, reset = weekly.get('usedPercent'), weekly.get('resetsAt')
-    if not isinstance(used, (int, float)) or not math.isfinite(used) or not 0 <= used <= 100:
-        raise ValueError('Pourcentage indisponible.')
-    if not isinstance(reset, (int, float)) or not math.isfinite(reset) or not now < reset <= now + 604860:
-        raise ValueError('Reset expiré ou invalide. En attente des nouvelles limites.')
-    return dict(account=hashlib.sha256(payload['accountId'].encode()).hexdigest()[:24],
+    if type(used) not in (int, float) or not math.isfinite(used) or not 0 <= used <= 100:
+        raise QuotaError('used_invalid')
+    if type(reset) not in (int, float) or not math.isfinite(reset):
+        raise QuotaError('reset_invalid')
+    if reset <= now:
+        raise QuotaError('reset_expired')
+    if reset > now + 604860:
+        raise QuotaError('reset_invalid')
+    identity = payload.get('accountId')
+    if not isinstance(identity, str) or not identity.strip():
+        # Display the real quota, but never merge unidentified accounts into history.
+        return dict(account='snapshot', at=now, reset=reset, used=used, transient=True)
+    return dict(account=hashlib.sha256(identity.encode()).hexdigest()[:24],
                 at=now, reset=reset, used=used)
 
 
@@ -130,7 +146,7 @@ def spark_quota(payload):
     if quota is None:
         quota = next((q for q in buckets.values() if q and q.get('limitName') == 'GPT-5.3-Codex-Spark'), None)
     if not quota:
-        raise ValueError('Spark quota unavailable')
+        raise QuotaError('quota_missing')
     return quota
 
 

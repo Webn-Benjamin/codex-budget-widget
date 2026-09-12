@@ -413,11 +413,11 @@ function Show-Envelope($envelope) {
 }
 function Get-DiagnosticReport {
  $lines=[Collections.Generic.List[string]]::new()
- $lines.Add('Budget Codex 1.2.2')
+ $lines.Add('Budget Codex 1.2.3')
  $lines.Add((T 'Source choisie')+': '+$script:sourceSelection)
  $lines.Add('Time zone: '+[TimeZoneInfo]::Local.Id)
  $lines.Add('')
- $events=@{connecting='Recherche de Codex';connected='Connexion établie';reading='Lecture des quotas';quotas_ok='Quotas reçus';unavailable='Quota indisponible';error='Erreur'}
+ $events=@{connecting='Recherche de Codex';connected='Connexion établie';reading='Lecture des quotas';quotas_ok='Quotas reçus';snapshot_mode='Budget sans historique de compte';unavailable='Quota indisponible';error='Erreur'}
  try {
   $log=Get-Content -LiteralPath (Join-Path $dataDir 'diagnostics.json') -Raw -Encoding UTF8|ConvertFrom-Json
   if ($log.version) { $lines.Add('Monitor: '+$log.version) }
