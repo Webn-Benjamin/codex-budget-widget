@@ -107,3 +107,19 @@ $state.used=0;$state.remaining=100
 Show-State $state
 Assert ($ui.BonusLabel.Text -eq 'Bonus' -and $ui.Bonus.Text.StartsWith('+')) 'Bonus not restored'
 Write-Output 'PASS: signed carry, daily total, deep deficit, snapshots and FR/EN.'
+
+$state | Add-Member tomorrow_available 15 -Force
+$state | Add-Member tomorrow_working $true -Force
+$state | Add-Member tomorrow_reset $false -Force
+Set-Language en
+Show-State $state
+Assert ($ui.TomorrowValue.Text -eq '15 %' -and $ui.TomorrowLabel.Text -eq 'Tomorrow') 'Tomorrow forecast missing'
+$state.tomorrow_available=12
+Show-State $state
+Assert ($ui.TomorrowValue.Text -eq '12 %') 'Forecast not refreshed'
+Set-Language fr
+Assert ($ui.TomorrowLabel.Text -eq 'Demain') 'French forecast missing'
+$state.tomorrow_available=$null;$state.tomorrow_reset=$true
+Show-State $state
+Assert ($ui.TomorrowValue.Text -eq '—' -and $ui.TomorrowHint.Text -like 'Reset*') 'Reset forecast invented'
+Write-Output 'PASS: tomorrow forecast refresh, FR/EN and reset boundary.'

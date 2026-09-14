@@ -160,4 +160,21 @@ class BudgetTests(unittest.TestCase):
         r=calculate([row(10,90),row(16,2,9,reset=ts(23,0))])
         self.assertEqual((r['available'],r['carry_low'],r['carry_high']), (18,0,0))
 
+    def test_deficit_and_tomorrow_follow_every_observation(self):
+        for spent, debt, forecast in [(42,-2,18),(45,-5,15),(65,-25,0)]:
+            r=calculate([row(9,0,0),row(10,30,0),row(10,spent)])
+            self.assertEqual((r['carry_low'],r['carry_high'],r['tomorrow_available']), (debt,debt,forecast))
+        # With no midnight history the same global usage gives the same forecast.
+        self.assertEqual(calculate([row(10,45)])['tomorrow_available'],15)
+
+    def test_tomorrow_rest_reset_and_weekly_cap(self):
+        r=calculate([row(11,65)])
+        self.assertEqual(r['tomorrow_available'],0)
+        self.assertFalse(r['tomorrow_working'])
+        r=calculate([row(15,95)])
+        self.assertIsNone(r['tomorrow_available'])
+        self.assertTrue(r['tomorrow_reset'])
+        r=calculate([row(14,95)])
+        self.assertLessEqual(r['tomorrow_available'],5)
+
 if __name__=='__main__': unittest.main()

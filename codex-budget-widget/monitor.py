@@ -121,7 +121,7 @@ def main():
                     journal.add('unavailable', client.source, 'parse', 'spark_5h_unavailable')
                 if result['models']['codex']['ok'] or result['models']['spark']['ok']:
                     journal.add('quotas_ok', client.source, 'refresh')
-                delay = 60
+                delay = 15
             except Exception as exc:
                 journal.add('error', client.source if client else selection,
                             exc.stage if isinstance(exc, ClientError) else getattr(client, 'stage', 'refresh'),

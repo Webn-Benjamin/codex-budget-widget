@@ -1,4 +1,9 @@
 ﻿$script:english = @{
+ "Demain"="Tomorrow"
+ "Demain · repos"="Tomorrow · day off"
+ "Si vous ne consommez plus aujourd’hui"="If you stop using quota today"
+ "Reset avant demain · nouveau quota à confirmer"="Reset before tomorrow · new quota pending"
+ "Mis à jour à {0} · toutes les 15 s"="Updated {0} · every 15 s"
  "Budget du jour"="Daily budget"
  "Quota hebdomadaire"="Weekly quota"
  "épuisé"="used up"

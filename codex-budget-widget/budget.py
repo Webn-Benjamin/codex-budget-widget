@@ -123,6 +123,15 @@ def calculate(rows, workdays=None, zone=None):
     today_low, today_high = used - previous_high, used - previous_low
     carry_low = min(remaining, opening_low - max(0, today_high - cap))
     carry_high = min(remaining, opening_high - max(0, today_low - cap))
+    # The debt at the end of today is exact even without midnight samples.
+    closing_balance = sum(v for d, v in allowances.items() if d <= now.date()) - used
+    if closing_balance < 0:
+        carry_low = carry_high = closing_balance
+    tomorrow = now.date() + timedelta(days=1)
+    tomorrow_start = datetime.combine(tomorrow, daytime(), zone)
+    tomorrow_cap = allowances.get(tomorrow, 0)
+    tomorrow_available = (min(remaining, max(0, closing_balance + tomorrow_cap))
+                          if tomorrow_start < reset else None)
     bonus_low, bonus_high = max(0, carry_low), max(0, carry_high)
     balance_low = min(remaining, max(0, cap - today_high + opening_low))
     balance_high = min(remaining, max(0, cap - today_low + opening_high))
@@ -133,6 +142,8 @@ def calculate(rows, workdays=None, zone=None):
                 today_low=max(0, today_low), today_high=max(0, today_high),
                 bonus_low=bonus_low, bonus_high=bonus_high,
                 carry_low=carry_low, carry_high=carry_high,
+                tomorrow_available=tomorrow_available, tomorrow_working=tomorrow_cap > 0,
+                tomorrow_reset=tomorrow_start >= reset,
                 balance_known=balance_known,
                 uncertain=previous_low != previous_high, cap=cap,
                 opening_bonus_low=opening_low, opening_bonus_high=opening_high,
