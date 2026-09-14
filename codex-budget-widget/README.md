@@ -152,3 +152,7 @@ See [BUILDING.md](BUILDING.md) to build and test the widget. / Consultez [BUILDI
 The **Tomorrow** card shows the planned allowance at the start of tomorrow, assuming no further usage today. It includes overspending and carryover, respects days off and is capped by the actual weekly quota remaining. If the weekly reset occurs before tomorrow, the widget waits for the new quota. Quotas refresh every 15 seconds when connected; upstream Codex reporting may lag.
 
 La carte **Demain** indique le budget prévu au début de demain si vous ne consommez plus aujourd’hui. Elle tient compte du malus, du report et des jours de repos, sans dépasser le quota hebdomadaire réel restant. Si le reset intervient avant demain, le widget attend le nouveau quota. Actualisation toutes les 15 secondes lorsque la connexion fonctionne ; les données remontées par Codex peuvent avoir du retard.
+
+Schedule edits apply from today onward: past daily allowances are preserved. Removing today makes it a day off.
+
+Les changements de planning prennent effet à partir d’aujourd’hui : les budgets des jours passés sont conservés. Décocher aujourd’hui en fait un jour de repos.

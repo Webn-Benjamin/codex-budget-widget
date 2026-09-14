@@ -76,7 +76,7 @@ def parse(payload, now, model="codex"):
                 at=now, reset=reset, used=used)
 
 
-def calculate(rows, workdays=None, zone=None):
+def calculate(rows, workdays=None, zone=None, schedule_changes=None):
     zone = local_zone() if zone is None else zone
     workdays = validate_workdays(DEFAULT_WORKDAYS if workdays is None else workdays)
     current = rows[-1]
@@ -92,6 +92,13 @@ def calculate(rows, workdays=None, zone=None):
     start = datetime.fromtimestamp(current['reset'] - 604800, zone)
     prior_days = max(0, (now.date() - start.date()).days)
     allowances = schedule(start, reset, workdays)
+    if schedule_changes:
+        allowances = schedule(start, reset, list(range(7)))
+        changes = sorted(schedule_changes, key=lambda c: c['at'])
+        for day in allowances:
+            applicable = [c for c in changes if datetime.fromtimestamp(c['at'], zone).date() <= day]
+            days = validate_workdays(applicable[-1]['workdays']) if applicable else workdays
+            allowances[day] = 100 / len(days) if day.weekday() in days else 0
     cap = allowances.get(now.date(), 0)
     used = current['used']
     remaining = 100 - used
@@ -137,11 +144,12 @@ def calculate(rows, workdays=None, zone=None):
     balance_high = min(remaining, max(0, cap - today_low + opening_high))
     balance_known = math.isclose(balance_low, balance_high, abs_tol=1e-8)
     available = balance_low if balance_known else None
-    days_left = sum(1 for day in allowances if day >= now.date())
+    days_left = sum(1 for day, value in allowances.items() if day >= now.date() and value > 0)
     return dict(timezone=str(zone), updated=current['at'], used=used, remaining=100-used, available=available,
                 today_low=max(0, today_low), today_high=max(0, today_high),
                 bonus_low=bonus_low, bonus_high=bonus_high,
                 carry_low=carry_low, carry_high=carry_high,
+                planning_balance=closing_balance,
                 tomorrow_available=tomorrow_available, tomorrow_working=tomorrow_cap > 0,
                 tomorrow_reset=tomorrow_start >= reset,
                 balance_known=balance_known,

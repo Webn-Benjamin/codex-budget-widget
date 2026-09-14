@@ -47,7 +47,7 @@ def record(folder, row, model="codex"):
                 f'SELECT * FROM {table} WHERE account=? AND reset=? ORDER BY at', (row['account'], row['reset']))]
     config_path = folder / 'workdays.json'
     config = json.loads(config_path.read_text(encoding='utf-8-sig')) if config_path.exists() else {'workdays': DEFAULT_WORKDAYS}
-    result = calculate(rows, validate_workdays(config.get('workdays')))
+    result = calculate(rows, validate_workdays(config.get('workdays')), schedule_changes=config.get('changes'))
     result['snapshot_only'] = bool(row.get('transient'))
     return result
 

@@ -177,4 +177,18 @@ class BudgetTests(unittest.TestCase):
         r=calculate([row(14,95)])
         self.assertLessEqual(r['tomorrow_available'],5)
 
+    def test_schedule_edit_preserves_past_allowances(self):
+        samples=[row(9,0,0),row(10,10,0),row(10,12)]
+        changes=[dict(at=0,workdays=list(range(7))),dict(at=ts(10,10),workdays=[0,1,3,4,5])]
+        old=calculate_in_zone(samples,list(range(7)),ZONE)
+        new=calculate_in_zone(samples,[0,1,3,4,5],ZONE,schedule_changes=changes)
+        self.assertEqual(new['cap'],20)
+        self.assertAlmostEqual(new['opening_bonus_low'],old['opening_bonus_low'])
+        self.assertAlmostEqual(new['available']-old['available'],20-100/7)
+        self.assertAlmostEqual(new['planning_balance'],100/7+20-12)
+        # A new cycle uses the latest schedule, without old daily targets.
+        new=calculate_in_zone([row(17,0,0,reset=ts(23,0))],[0,1,3,4,5],ZONE,schedule_changes=changes)
+        self.assertEqual(new['opening_bonus_low'],0)
+        self.assertEqual(new['cap'],20)
+
 if __name__=='__main__': unittest.main()

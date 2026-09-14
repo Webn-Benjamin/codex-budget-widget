@@ -233,7 +233,14 @@ $ui.SaveDays.Add_Click({
  }
  $tempConfig=$workdaysFile+'.'+[Guid]::NewGuid().ToString('N')+'.tmp'
  try {
-  [IO.File]::WriteAllText($tempConfig,(@{workdays=$selected}|ConvertTo-Json),[Text.UTF8Encoding]::new($false))
+  $changes=@()
+  if (Test-Path -LiteralPath $workdaysFile) {
+   $previous=Get-Content -LiteralPath $workdaysFile -Raw -Encoding UTF8 | ConvertFrom-Json
+   if ($previous.changes) { $changes=@($previous.changes) }
+  }
+  if ($changes.Count -eq 0) { $changes=@(@{at=0;workdays=@($chosenDays)}) }
+  $changes+=@{at=[DateTimeOffset]::UtcNow.ToUnixTimeSeconds();workdays=$selected}
+  [IO.File]::WriteAllText($tempConfig,(@{workdays=$selected;changes=$changes}|ConvertTo-Json -Depth 6),[Text.UTF8Encoding]::new($false))
   # An explicit backup path avoids PowerShell 5.1 converting $null to an empty path.
   if (Test-Path -LiteralPath $workdaysFile) { [IO.File]::Replace($tempConfig,$workdaysFile,$workdaysFile+'.bak') } else { [IO.File]::Move($tempConfig,$workdaysFile) }
   $script:chosenDays=$selected
@@ -241,9 +248,7 @@ $ui.SaveDays.Add_Click({
   [IO.File]::WriteAllText((Join-Path $dataDir 'refresh'),'')
   $ui.SettingsPanel.Visibility='Collapsed'; Resize-Widget
   $ui.Total.Text=' / —'; $ui.Fill.Width=0; $ui.Context.Text=(T (T "Planning enregistré · recalcul en cours…"))
-  $ui.TomorrowLabel.Text=if ($s.tomorrow_working) { (T 'Demain') } else { (T 'Demain · repos') }
- $ui.TomorrowValue.Text=if ($null -ne $s.tomorrow_available) { "$(Format-Points $s.tomorrow_available) %" } else { '—' }
- $ui.TomorrowHint.Text=if ($s.tomorrow_reset) { (T 'Reset avant demain · nouveau quota à confirmer') } else { (T "Si vous ne consommez plus aujourd’hui") }
+  $ui.TomorrowValue.Text='—'; $ui.TomorrowHint.Text=''
  $ui.Context.ToolTip=$null
  } catch {
   $ui.Context.Text=(T (T "Enregistrement impossible · réessaie dans un instant."))
@@ -254,6 +259,10 @@ $ui.SaveDays.Add_Click({
 })
 function Format-Points($value) { return ([double]$value).ToString('0.#',(Get-DisplayCulture)) }
 function Get-PlanningBalance($s, [switch]$Signed) {
+ if ($null -ne $s.planning_balance) {
+  if ($Signed) { return [double]$s.planning_balance }
+  return [Math]::Min([double]$s.remaining,[Math]::Max(0.0,[double]$s.planning_balance))
+ }
  [TimeZoneInfo]::ClearCachedData()
  $zone=[TimeZoneInfo]::Local
  $first=[TimeZoneInfo]::ConvertTime([DateTimeOffset]::FromUnixTimeSeconds([long]$s.reset-604800),$zone).Date
@@ -455,7 +464,7 @@ function Show-Envelope($envelope) {
 }
 function Get-DiagnosticReport {
  $lines=[Collections.Generic.List[string]]::new()
- $lines.Add('Budget Codex 1.2.6')
+ $lines.Add('Budget Codex 1.2.7')
  $lines.Add((T 'Source choisie')+': '+$script:sourceSelection)
  $lines.Add('Time zone: '+[TimeZoneInfo]::Local.Id)
  $lines.Add('')
