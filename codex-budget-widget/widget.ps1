@@ -18,7 +18,7 @@ if (-not $ownsMutex -and -not $Preview) { $mutex.Dispose(); exit }
 [xml]$xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Budget Codex"
- Width="360" Height="500" WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+ Width="360" Height="565" WindowStyle="None" AllowsTransparency="True" Background="Transparent"
  ResizeMode="NoResize" Topmost="True" WindowStartupLocation="Manual"
  FontFamily="Segoe UI" FontSize="12" Foreground="#F4F7FA" UseLayoutRounding="True">
  <Window.Resources>
@@ -145,6 +145,9 @@ if (-not $ownsMutex -and -not $Preview) { $mutex.Dispose(); exit }
     <StackPanel>
      <DockPanel><TextBlock x:Name="TomorrowLabel" Text="Demain" Foreground="#AFBBC8" VerticalAlignment="Center"/><TextBlock x:Name="TomorrowValue" Text="—" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Right" Foreground="#6DE0B9"/></DockPanel>
      <TextBlock x:Name="TomorrowHint" FontSize="10" Foreground="#AFBBC8" Margin="0,3,0,0" TextWrapping="Wrap"/>
+     <Border Height="1" Background="#303842" Margin="0,8,0,7"/>
+     <TextBlock x:Name="WeeklyAverage" FontSize="11" Foreground="#AFBBC8" TextWrapping="Wrap"/>
+     <DockPanel Margin="0,5,0,0"><TextBlock x:Name="ProjectionLabel" FontSize="11" Foreground="#AFBBC8" VerticalAlignment="Center"/><TextBlock x:Name="ProjectionValue" FontSize="18" FontWeight="SemiBold" Foreground="#F0CA8D" HorizontalAlignment="Right"/></DockPanel>
     </StackPanel>
    </Border>
    <Border BorderBrush="#303842" BorderThickness="0,1,0,0" Margin="22,12,22,0" Padding="0,9,0,0">
@@ -189,7 +192,7 @@ if (-not $ownsMutex -and -not $Preview) { $mutex.Dispose(); exit }
 '@
 $window = [Windows.Markup.XamlReader]::Load([Xml.XmlNodeReader]::new($xaml))
 $ui = @{}
-'TomorrowLabel','TomorrowValue','TomorrowHint','DiagnosticLabel','DiagnosticHint','DiagnosticConsole','CopyDiagnostic','SourceLabel','SourceChoice','SourceHint','ModelCodex','ModelSpark','ShortPanel','ShortLabel','ShortValue','ShortFill','ShortReset','LangFR','LangEN','DailyLabel','BonusLabel','GlobalLabel','DaysLabel','UsageLabel','GlobalRemaining','DragArea','ConnectionDot','SettingsButton','Minimize','Close','Date','Used','Total','Track','Fill','Context','Daily','Bonus','Status','Refresh','SettingsPanel','SaveDays','Workdays','Pin','Weekly','Reset' | ForEach-Object { $ui[$_] = $window.FindName($_) }
+'WeeklyAverage','ProjectionLabel','ProjectionValue','TomorrowLabel','TomorrowValue','TomorrowHint','DiagnosticLabel','DiagnosticHint','DiagnosticConsole','CopyDiagnostic','SourceLabel','SourceChoice','SourceHint','ModelCodex','ModelSpark','ShortPanel','ShortLabel','ShortValue','ShortFill','ShortReset','LangFR','LangEN','DailyLabel','BonusLabel','GlobalLabel','DaysLabel','UsageLabel','GlobalRemaining','DragArea','ConnectionDot','SettingsButton','Minimize','Close','Date','Used','Total','Track','Fill','Context','Daily','Bonus','Status','Refresh','SettingsPanel','SaveDays','Workdays','Pin','Weekly','Reset' | ForEach-Object { $ui[$_] = $window.FindName($_) }
 $window.Left = [Math]::Max(0, [Windows.SystemParameters]::WorkArea.Right - 380)
 $window.Top = [Math]::Max(0, [Windows.SystemParameters]::WorkArea.Bottom - 398)
 $settings = Join-Path $dataDir 'window.json'
@@ -248,7 +251,7 @@ $ui.SaveDays.Add_Click({
   [IO.File]::WriteAllText((Join-Path $dataDir 'refresh'),'')
   $ui.SettingsPanel.Visibility='Collapsed'; Resize-Widget
   $ui.Total.Text=' / —'; $ui.Fill.Width=0; $ui.Context.Text=(T (T "Planning enregistré · recalcul en cours…"))
-  $ui.TomorrowValue.Text='—'; $ui.TomorrowHint.Text=''
+  $ui.TomorrowValue.Text='—'; $ui.TomorrowHint.Text=''; $ui.WeeklyAverage.Text='—'; $ui.ProjectionValue.Text='—'; $ui.ProjectionLabel.Text=(T 'Demain à ce rythme')
  $ui.Context.ToolTip=$null
  } catch {
   $ui.Context.Text=(T (T "Enregistrement impossible · réessaie dans un instant."))
@@ -305,7 +308,7 @@ function Show-State($s) {
   $ui.Reset.ToolTip=[TimeZoneInfo]::Local.DisplayName
  }
  if (-not $fresh) {
-  $ui.TomorrowLabel.Text=(T 'Demain'); $ui.TomorrowValue.Text='—'; $ui.TomorrowHint.Text=''
+  $ui.TomorrowLabel.Text=(T 'Demain'); $ui.TomorrowValue.Text='—'; $ui.TomorrowHint.Text=''; $ui.WeeklyAverage.Text='—'; $ui.ProjectionValue.Text='—'; $ui.ProjectionLabel.Text=(T 'Demain à ce rythme')
   $ui.Used.Text='—'; $ui.Total.Text=' / —'; $ui.Bonus.Text='—'; $ui.Fill.Width=0
   $ui.Used.Foreground='#AFBBC8'; $ui.ConnectionDot.Fill='#F0CA8D'
   $message=switch ($s.error_code) {
@@ -321,6 +324,10 @@ function Show-State($s) {
   $ui.Context.Text=(T $message)
   $ui.Context.ToolTip=(T $message); $ui.Status.Text=(T (T "Hors ligne")); return
  }
+ $ui.WeeklyAverage.Text=if ($null -ne $s.average_usage) { (T 'Moyenne semaine : {0} % / jour travaillé') -f (Format-Points $s.average_usage) } else { (T 'Moyenne : une journée travaillée nécessaire') }
+ $ui.ProjectionLabel.Text=(T 'Demain à ce rythme')
+ $ui.ProjectionValue.Text=if ($null -ne $s.projected_tomorrow) { "≈ $(Format-Points $s.projected_tomorrow) %" } else { '—' }
+ $ui.ProjectionValue.ToolTip=(T "Estimation du budget disponible demain si le rythme moyen continue jusqu’à ce soir. Le jour en cours est pondéré par le temps écoulé ; les jours de repos ne créent pas de consommation prévue.")
  $ui.TomorrowLabel.Text=if ($s.tomorrow_working) { (T 'Demain') } else { (T 'Demain · repos') }
  $ui.TomorrowValue.Text=if ($null -ne $s.tomorrow_available) { "$(Format-Points $s.tomorrow_available) %" } else { '—' }
  $ui.TomorrowHint.Text=if ($s.tomorrow_reset) { (T 'Reset avant demain · nouveau quota à confirmer') } else { (T "Si vous ne consommez plus aujourd’hui") }
@@ -378,7 +385,7 @@ function Show-State($s) {
  }
 }
 function Resize-Widget {
- $height=500
+ $height=565
  if ($script:model -eq 'spark') { $height+=112 }
  if ($ui.SettingsPanel.Visibility -eq 'Visible') { $height+=535 }
  $height=[Math]::Min($height,[Windows.SystemParameters]::WorkArea.Height)
@@ -464,7 +471,7 @@ function Show-Envelope($envelope) {
 }
 function Get-DiagnosticReport {
  $lines=[Collections.Generic.List[string]]::new()
- $lines.Add('Budget Codex 1.2.7')
+ $lines.Add('Budget Codex 1.2.8')
  $lines.Add((T 'Source choisie')+': '+$script:sourceSelection)
  $lines.Add('Time zone: '+[TimeZoneInfo]::Local.Id)
  $lines.Add('')

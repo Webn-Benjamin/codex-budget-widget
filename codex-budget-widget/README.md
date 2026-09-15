@@ -156,3 +156,7 @@ La carte **Demain** indique le budget prévu au début de demain si vous ne cons
 Schedule edits apply from today onward: past daily allowances are preserved. Removing today makes it a day off.
 
 Les changements de planning prennent effet à partir d’aujourd’hui : les budgets des jours passés sont conservés. Décocher aujourd’hui en fait un jour de repos.
+
+**Tomorrow at this pace** estimates tomorrow's available budget if this week's average usage continues until tonight. The average divides current cycle usage by elapsed working-day equivalents (including partial days and schedule history). It requires at least one elapsed working day, assumes no extra usage on days off and never predicts a new reset quota. This is an estimate, not measured future usage.
+
+**Demain à ce rythme** estime le budget disponible demain si la consommation moyenne de la semaine se poursuit jusqu’à ce soir. La moyenne divise la consommation du cycle par les jours travaillés écoulés, pondérés pour les journées partielles et selon l’historique du planning. Il faut au moins une journée travaillée écoulée. Aucune consommation supplémentaire n’est supposée les jours de repos, ni aucun nouveau quota après reset. Il s’agit d’une estimation.

@@ -1,4 +1,8 @@
 ﻿$script:english = @{
+ "Moyenne semaine : {0} % / jour travaillé"="Weekly average: {0}% / working day"
+ "Moyenne : une journée travaillée nécessaire"="Average: one working day needed"
+ "Demain à ce rythme"="Tomorrow at this pace"
+ "Estimation du budget disponible demain si le rythme moyen continue jusqu’à ce soir. Le jour en cours est pondéré par le temps écoulé ; les jours de repos ne créent pas de consommation prévue."="Estimated budget available tomorrow if the average pace continues until tonight. Today is weighted by elapsed time; no additional usage is assumed on days off."
  "Demain"="Tomorrow"
  "Demain · repos"="Tomorrow · day off"
  "Si vous ne consommez plus aujourd’hui"="If you stop using quota today"

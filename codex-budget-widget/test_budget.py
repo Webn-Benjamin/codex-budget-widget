@@ -191,4 +191,21 @@ class BudgetTests(unittest.TestCase):
         self.assertEqual(new['opening_bonus_low'],0)
         self.assertEqual(new['cap'],20)
 
+    def test_weekly_pace_projects_remaining_today(self):
+        r=calculate([row(10,30)])  # 1.5 working days elapsed, 20 points/day.
+        self.assertEqual(r['average_usage'],20)
+        self.assertEqual(r['tomorrow_available'],30)
+        self.assertEqual(r['projected_tomorrow'],20)
+        r=calculate([row(10,0)])
+        self.assertEqual(r['projected_tomorrow'],r['tomorrow_available'])
+
+    def test_projection_requires_day_and_respects_reset_rest_and_quota(self):
+        self.assertIsNone(calculate([row(9,10)])['average_usage'])
+        self.assertIsNone(calculate([row(15,50)])['projected_tomorrow'])
+        r=calculate([row(12,30)])
+        self.assertEqual(r['projected_tomorrow'],r['tomorrow_available'])
+        r=calculate([row(14,99)])
+        self.assertGreaterEqual(r['projected_tomorrow'],0)
+        self.assertLessEqual(r['projected_tomorrow'],r['remaining'])
+
 if __name__=='__main__': unittest.main()

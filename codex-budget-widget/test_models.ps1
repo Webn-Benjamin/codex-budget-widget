@@ -123,3 +123,16 @@ $state.tomorrow_available=$null;$state.tomorrow_reset=$true
 Show-State $state
 Assert ($ui.TomorrowValue.Text -eq '—' -and $ui.TomorrowHint.Text -like 'Reset*') 'Reset forecast invented'
 Write-Output 'PASS: tomorrow forecast refresh, FR/EN and reset boundary.'
+
+$state | Add-Member average_usage 20 -Force
+$state | Add-Member projected_tomorrow 12 -Force
+Set-Language fr
+Show-State $state
+Assert ($ui.WeeklyAverage.Text -like '*20 %*' -and $ui.ProjectionValue.Text -eq '≈ 12 %') 'French projection missing'
+Set-Language en
+Assert ($ui.ProjectionLabel.Text -eq 'Tomorrow at this pace') 'English projection missing'
+$state.projected_tomorrow=8;Show-State $state
+Assert ($ui.ProjectionValue.Text -eq '≈ 8 %') 'Projection not refreshed'
+$state.average_usage=$null;$state.projected_tomorrow=$null;Show-State $state
+Assert ($ui.ProjectionValue.Text -eq '—' -and $ui.WeeklyAverage.Text -like '*one working day*') 'Missing average guessed'
+Write-Output 'PASS: weekly average and projection in FR/EN, refresh and insufficient data.'

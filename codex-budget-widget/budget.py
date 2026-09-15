@@ -139,6 +139,22 @@ def calculate(rows, workdays=None, zone=None, schedule_changes=None):
     tomorrow_cap = allowances.get(tomorrow, 0)
     tomorrow_available = (min(remaining, max(0, closing_balance + tomorrow_cap))
                           if tomorrow_start < reset else None)
+    # Estimate pace from elapsed working-day fractions in this reset cycle.
+    # Calendar fractions follow local midnight, including 23/25-hour DST days.
+    elapsed_workdays = 0.0
+    for day, allowance in allowances.items():
+        if allowance <= 0 or day > now.date():
+            continue
+        midnight = datetime.combine(day, daytime(), zone).timestamp()
+        end = datetime.combine(day + timedelta(days=1), daytime(), zone).timestamp()
+        elapsed_workdays += max(0, min(now.timestamp(), end) - max(start.timestamp(), midnight)) / (end - midnight)
+    average_usage = used / elapsed_workdays if elapsed_workdays >= 1 else None
+    end_today = datetime.combine(tomorrow, daytime(), zone).timestamp()
+    start_today = datetime.combine(now.date(), daytime(), zone).timestamp()
+    fraction_left = (end_today - now.timestamp()) / (end_today - start_today) if cap > 0 else 0
+    projected_extra = min(remaining, average_usage * fraction_left) if average_usage is not None else None
+    projected_tomorrow = (min(remaining - projected_extra, max(0, closing_balance + tomorrow_cap - projected_extra))
+                          if projected_extra is not None and tomorrow_available is not None else None)
     bonus_low, bonus_high = max(0, carry_low), max(0, carry_high)
     balance_low = min(remaining, max(0, cap - today_high + opening_low))
     balance_high = min(remaining, max(0, cap - today_low + opening_high))
@@ -149,6 +165,7 @@ def calculate(rows, workdays=None, zone=None, schedule_changes=None):
                 today_low=max(0, today_low), today_high=max(0, today_high),
                 bonus_low=bonus_low, bonus_high=bonus_high,
                 carry_low=carry_low, carry_high=carry_high,
+                average_usage=average_usage, projected_tomorrow=projected_tomorrow,
                 planning_balance=closing_balance,
                 tomorrow_available=tomorrow_available, tomorrow_working=tomorrow_cap > 0,
                 tomorrow_reset=tomorrow_start >= reset,
