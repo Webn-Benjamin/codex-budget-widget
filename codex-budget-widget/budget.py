@@ -47,6 +47,38 @@ def schedule(start, reset, workdays):
     return {day: 100 * weight / total for day, weight in allowances.items()}
 
 
+def remaining_plan(now, reset, workdays, remaining, average_usage=None):
+    """Share only the real remaining quota, without applying past debt twice.
+
+    Today counts as a working day even when partly elapsed. Only the reset
+    boundary shortens its weight, so a Wednesday with three days left gets R/3.
+    """
+    zone = now.tzinfo
+    weights = {}
+    day = now.date()
+    while day <= reset.date():
+        begin = datetime.combine(day, daytime(), zone).timestamp()
+        end = datetime.combine(day + timedelta(days=1), daytime(), zone).timestamp()
+        overlap = max(0, min(end, reset.timestamp()) - begin)
+        if day.weekday() in workdays and overlap:
+            weights[day] = overlap / (end - begin)
+        day += timedelta(days=1)
+    weight = sum(weights.values())
+    daily = remaining / weight if weight else 0
+    today = min(remaining, daily * weights.get(now.date(), 0))
+    tomorrow = now.date() + timedelta(days=1)
+    next_weight = sum(v for d,v in weights.items() if d >= tomorrow)
+    tomorrow_start = datetime.combine(tomorrow, daytime(), zone)
+    tomorrow_available = (remaining * weights.get(tomorrow, 0) / next_weight if next_weight else 0) if tomorrow_start < reset else None
+    begin = datetime.combine(now.date(), daytime(), zone).timestamp()
+    end = tomorrow_start.timestamp()
+    extra = (min(remaining, average_usage * max(0,min(end,reset.timestamp())-now.timestamp()) / (end-begin))
+             if average_usage is not None and now.weekday() in workdays else 0 if average_usage is not None else None)
+    forecast = ((remaining-extra) * weights.get(tomorrow,0)/next_weight if next_weight else 0) if extra is not None and tomorrow_available is not None else None
+    return dict(available=today, daily=min(remaining,daily), days=len(weights),
+                tomorrow_available=tomorrow_available, projected_tomorrow=forecast,
+                tomorrow_working=tomorrow in weights, working_today=now.date() in weights)
+
 def changed_schedule(start, reset, workdays, changes):
     """Freeze past dates; redistribute only the unallocated part of this cycle."""
     if not changes:
@@ -192,7 +224,7 @@ def calculate(rows, workdays=None, zone=None, schedule_changes=None):
     balance_known = math.isclose(balance_low, balance_high, abs_tol=1e-8)
     available = balance_low if balance_known else None
     days_left = sum(1 for day, value in allowances.items() if day >= now.date() and value > 0)
-    return dict(timezone=str(zone), updated=current['at'], used=used, remaining=100-used, available=available,
+    return dict(remaining_plan=remaining_plan(now, reset, workdays, remaining, average_usage), timezone=str(zone), updated=current['at'], used=used, remaining=100-used, available=available,
                 today_low=max(0, today_low), today_high=max(0, today_high),
                 bonus_low=bonus_low, bonus_high=bonus_high,
                 carry_low=carry_low, carry_high=carry_high,

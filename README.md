@@ -1,5 +1,10 @@
 # Budget Codex
 
+**Version 1.2.11 — actual remaining quota:** today's budget is the remaining weekly quota divided among working days from today to the exact reset. Example: 33% left on Wednesday, Saturday off, reset Saturday → 11% each for Wednesday, Thursday and Friday. Past spending is already included in the remaining quota; no extra bonus or deficit is applied. Days left replaces the old deficit display. The estimate is recalculated as usage changes. Tomorrow assumes no more usage today; “at this pace” subtracts projected usage first. Partial reset days are weighted; later-cycle days are excluded.
+
+**Version 1.2.11 — quota réel restant :** le budget du jour répartit le quota hebdomadaire restant entre les jours travaillés d’aujourd’hui au reset exact. Exemple : 33 % le mercredi, samedi décoché, reset samedi → 11 % pour mercredi, jeudi et vendredi. La consommation passée est déjà comprise dans le quota restant : aucun bonus ou malus supplémentaire. La case Jours restants remplace le malus. Le montant évolue avec la consommation. Demain suppose aucun usage supplémentaire aujourd’hui ; la projection au rythme moyen en déduit d’abord l’usage prévu. Les journées coupées par le reset sont pondérées ; les jours du cycle suivant sont exclus.
+
+
 **Keep track of your Codex budget, one workday at a time.**
 **Gardez votre budget Codex en vue, jour après jour.**
 
@@ -20,12 +25,6 @@ Budget Codex is a small Windows desktop widget that helps you plan your Codex us
 Switch between **Codex** and **GPT-5.3-Codex-Spark** above the daily budget. Your selection is saved. Each model has its own weekly history and daily carryover; workdays are shared. Spark also shows its **5-hour remaining quota and reset time**, independently of its weekly budget. These two percentages are never added together. An exhausted 5-hour window can limit Spark even when its weekly quota remains available. If your account does not expose Spark limits, the widget shows unavailable values rather than guessing.
 
 ### At a glance
-
-- **Daily usage:** see how much you have used against your daily allowance, including carryover — for example, **5% / 17%**.
-- **Your work schedule:** select the days you work. Five days gives a daily target of **20%**; seven days gives approximately **14.3%**.
-- **Bonus:** see unused budget carried forward from earlier days.
-- **Weekly quota:** see what remains out of **100%**, directly at the bottom of the widget.
-- **Automatic updates:** refreshes every minute while open, with a manual refresh button.
 
 ### Codex CLI support
 
@@ -52,10 +51,6 @@ Drag the header to move the widget. You can keep it on top of other windows, min
 **Choose FR or EN beside the settings button.** The interface switches immediately and remembers your choice. On first launch it follows your Windows language (French or English).
 
 ### Understanding your budget
-
-**Overspending carries over too.** A negative balance appears as **Deficit** and reduces later daily budgets until it is repaid or the weekly cycle resets. For example, with 20% per working day, using 30% on the first day leaves 10% available on the next working day. Days off do not erase the deficit; the real remaining weekly quota is unchanged.
-
-The daily target divides the weekly 100% across your selected working days. Bonus is unused allowance carried forward within the same reset cycle; it is **not extra quota granted by OpenAI**. For example, a 15% daily target plus 2% carried over gives a 17% allowance.
 
 If the start of the day was not recorded, the main figure switches to **Disponible aujourd’hui** (available today). It uses the budget unlocked by your work schedule minus total usage in the current cycle. This is a planning balance, not a reconstruction of usage since midnight. With seven working days, two days unlocked and 17% used, the planning balance is approximately **11.57%**, with **83%** remaining overall.
 
@@ -85,12 +80,6 @@ Le sélecteur au-dessus du budget permet de choisir **Codex** ou **GPT-5.3-Codex
 
 ### L’essentiel en un regard
 
-- **Consommation du jour :** visualisez votre utilisation sur le budget disponible, bonus inclus — par exemple **5 % / 17 %**.
-- **Votre planning :** choisissez vos jours de travail. Cinq jours donnent un objectif de **20 % par jour** ; sept jours, environ **14,3 %**.
-- **Bonus :** retrouvez le budget non utilisé reporté des jours précédents.
-- **Quota hebdomadaire :** consultez le restant sur **100 %**, directement en bas du widget.
-- **Actualisation automatique :** les données sont mises à jour chaque minute lorsque le widget est ouvert, ou avec le bouton **Actualiser**.
-
 ### Prise en charge du CLI Codex
 
 Le CLI Codex pour Windows est pris en charge, y compris les installations npm. L’application Codex est facultative. Connectez-vous avec `codex login`, puis ouvrez le widget. Les quotas couvrent le compte : les usages de l’application et du CLI sur le même compte sont inclus ensemble, sans compteurs séparés. La facturation par clé API n’est pas suivie. Les installations uniquement dans WSL sont prises en charge : si aucun exécutable Codex Windows n’est trouvé, le widget cherche dans les distributions Linux installées (Debian, Ubuntu…), en ignorant celles de Docker. Il utilise la première installation trouvée et l’utilisateur Linux par défaut de la distribution. Connectez-vous dans cette distribution, par exemple avec `wsl -d Debian`, puis `codex login`.
@@ -116,10 +105,6 @@ Déplacez le widget par sa barre de titre. Vous pouvez le garder au premier plan
 **Choisissez FR ou EN à côté du bouton des réglages.** La langue change immédiatement et votre choix est conservé. Au premier lancement, le widget suit la langue de Windows : français, ou anglais pour les autres langues.
 
 ### Comprendre les chiffres
-
-**Le dépassement est aussi reporté.** Un solde négatif apparaît en **Malus** et réduit les budgets suivants jusqu’à son remboursement ou au reset hebdomadaire. Par exemple, avec 20 % par jour travaillé, consommer 30 % le premier jour laisse 10 % disponibles le jour travaillé suivant. Les jours de repos n’effacent pas le malus ; le quota hebdomadaire réel restant reste inchangé.
-
-Le budget journalier répartit les 100 % hebdomadaires sur vos jours de travail. Le bonus correspond au budget non utilisé reporté au sein du même cycle : **ce n’est pas du quota supplémentaire offert par OpenAI**. Par exemple, un objectif quotidien de 15 % avec 2 % reportés donne un budget de 17 %.
 
 Si le début de journée n’a pas été enregistré, le chiffre principal devient **Disponible aujourd’hui**. Il correspond au budget débloqué par votre planning, moins la consommation globale du cycle. C’est un solde de planning, pas une reconstitution de l’utilisation depuis minuit. Avec sept jours travaillés, deux jours débloqués et 17 % consommés, ce solde est d’environ **11,57 %**, avec **83 %** restants au total.
 
@@ -153,18 +138,6 @@ The **Tomorrow** card shows the planned allowance at the start of tomorrow, assu
 
 La carte **Demain** indique le budget prévu au début de demain si vous ne consommez plus aujourd’hui. Elle tient compte du malus, du report et des jours de repos, sans dépasser le quota hebdomadaire réel restant. Si le reset intervient avant demain, le widget attend le nouveau quota. Actualisation toutes les 15 secondes lorsque la connexion fonctionne ; les données remontées par Codex peuvent avoir du retard.
 
-Schedule edits apply from today onward: past daily allowances are preserved. Removing today makes it a day off.
-
-Les changements de planning prennent effet à partir d’aujourd’hui : les budgets des jours passés sont conservés. Décocher aujourd’hui en fait un jour de repos.
-
 **Tomorrow at this pace** estimates tomorrow's available budget if this week's average usage continues until tonight. The average divides current cycle usage by elapsed working-day equivalents (including partial days and schedule history). It requires at least one elapsed working day, assumes no extra usage on days off and never predicts a new reset quota. This is an estimate, not measured future usage.
 
 **Demain à ce rythme** estime le budget disponible demain si la consommation moyenne de la semaine se poursuit jusqu’à ce soir. La moyenne divise la consommation du cycle par les jours travaillés écoulés, pondérés pour les journées partielles et selon l’historique du planning. Il faut au moins une journée travaillée écoulée. Aucune consommation supplémentaire n’est supposée les jours de repos, ni aucun nouveau quota après reset. Il s’agit d’une estimation.
-
-Reset time is included in daily budgets: partial working days at the start and end of a cycle are prorated. For a fixed schedule, all daily allocations in the cycle sum to 100%, including daylight-saving transitions. “Per day” remains the nominal full-day target; today's total uses the effective partial allowance plus carryover.
-
-L’heure du reset est prise en compte : les jours travaillés partiels au début et à la fin du cycle sont proratisés. À planning constant, la somme des budgets du cycle vaut 100 %, y compris au changement d’heure. « Par jour » reste la cible nominale d’une journée entière ; le total du jour utilise le budget partiel effectif avec le report.
-
-Workday edits redistribute only the allocation from today until the next reset, preserving past dates. Removing a weekday whose next occurrence is after the reset does not change this cycle's daily budget. The “Per day” figure follows the active cycle; the new full schedule applies at the next reset.
-
-Les modifications de jours redistribuent uniquement le budget d’aujourd’hui au prochain reset, en conservant les jours passés. Décocher un jour dont la prochaine occurrence est après le reset ne change pas le budget quotidien actuel. « Par jour » suit le cycle actif ; le nouveau planning complet s’applique au reset suivant.

@@ -136,3 +136,15 @@ Assert ($ui.ProjectionValue.Text -eq '≈ 8 %') 'Projection not refreshed'
 $state.average_usage=$null;$state.projected_tomorrow=$null;Show-State $state
 Assert ($ui.ProjectionValue.Text -eq '—' -and $ui.WeeklyAverage.Text -like '*one working day*') 'Missing average guessed'
 Write-Output 'PASS: weekly average and projection in FR/EN, refresh and insufficient data.'
+
+$state | Add-Member remaining_plan ([pscustomobject]@{available=11;daily=11;days=3;tomorrow_available=16.5;projected_tomorrow=11.5;working_today=$true;tomorrow_working=$true}) -Force
+Set-Language fr
+Show-State $state
+Assert ($ui.Used.Text -eq '11 %' -and $ui.Total.Text -eq '') 'Remaining quota allocation missing'
+Assert ($ui.BonusLabel.Text -eq 'Jours restants' -and $ui.Bonus.Text -eq '3') 'Old deficit still displayed'
+Assert ($ui.TomorrowValue.Text -eq '16,5 %') 'Tomorrow allocation incorrect'
+Set-Language en
+Assert ($ui.BonusLabel.Text -eq 'Days left' -and $ui.TomorrowValue.Text -eq '16.5 %') 'English remaining allocation incorrect'
+$state.remaining_plan.available=10;Show-State $state
+Assert ($ui.Used.Text -eq '10 %') 'Live remaining allocation not refreshed'
+Write-Output 'PASS: remaining quota allocation, no double deficit, FR/EN and live refresh.'

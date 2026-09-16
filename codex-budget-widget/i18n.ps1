@@ -1,4 +1,8 @@
 ﻿$script:english = @{
+ "Jours restants"="Days left"
+ "Jours travaillés restants avant le reset, aujourd’hui inclus"="Working days before reset, including today"
+ "Quota restant réparti jusqu’au reset"="Remaining quota shared until reset"
+ "Le quota réel restant est partagé entre les jours travaillés avant le reset. La consommation passée est déjà déduite : aucun malus supplémentaire."="Actual remaining quota is shared across working days before reset. Past usage is already deducted: no extra deficit."
  "Moyenne semaine : {0} % / jour travaillé"="Weekly average: {0}% / working day"
  "Moyenne : une journée travaillée nécessaire"="Average: one working day needed"
  "Demain à ce rythme"="Tomorrow at this pace"

@@ -378,6 +378,21 @@ function Show-State($s) {
   $ui.Context.ToolTip=(T (T "Budget débloqué depuis le reset selon les jours cochés, moins toute la consommation du cycle. Le détail consommé depuis minuit reste inconnu."))
  }
  if ($null -ne $s.carry_low -and $s.carry_low -lt 0 -and [Math]::Abs($s.carry_low-$s.carry_high) -lt 0.000001) { Show-Carry $s.carry_low }
+ if ($null -ne $s.remaining_plan) {
+  $plan=$s.remaining_plan
+  $ui.UsageLabel.Text=(T "Disponible aujourd’hui")
+  $ui.Used.Text="$(Format-Points $plan.available) %"; $ui.Used.FontSize=42; $ui.Total.Text=''
+  $ui.Used.Foreground='#6DE0B9'; $ui.Fill.Background='#6DE0B9'
+  $ui.Fill.Width=312*[Math]::Min(1.0,[double]$plan.available/[Math]::Max(0.000001,[double]$s.remaining))
+  $ui.Daily.Text="$(Format-Points $plan.daily) %"
+  $ui.BonusLabel.Text=(T 'Jours restants'); $ui.Bonus.Text=[string]$plan.days; $ui.Bonus.Foreground='#AFBBC8'
+  $ui.Bonus.ToolTip=(T "Jours travaillés restants avant le reset, aujourd’hui inclus")
+  $ui.Context.Text=if ($plan.working_today) { (T "Quota restant réparti jusqu’au reset") } else { (T 'Jour de repos') }
+  $ui.Context.ToolTip=(T 'Le quota réel restant est partagé entre les jours travaillés avant le reset. La consommation passée est déjà déduite : aucun malus supplémentaire.')
+  $ui.TomorrowLabel.Text=if ($plan.tomorrow_working) { (T 'Demain') } else { (T 'Demain · repos') }
+  $ui.TomorrowValue.Text=if ($null -ne $plan.tomorrow_available) { "$(Format-Points $plan.tomorrow_available) %" } else { '—' }
+  $ui.ProjectionValue.Text=if ($null -ne $plan.projected_tomorrow) { "≈ $(Format-Points $plan.projected_tomorrow) %" } else { '—' }
+ }
  $time=[DateTimeOffset]::FromUnixTimeSeconds([long]$s.updated).ToLocalTime().ToString('HH:mm')
  $ui.Status.Text=(T "Mis à jour à {0} · toutes les 15 s") -f $time
  if ($script:model -eq 'spark' -and $s.short.ok -and $s.short.reset -gt $epoch -and $s.short.remaining -le 0) {
@@ -471,7 +486,7 @@ function Show-Envelope($envelope) {
 }
 function Get-DiagnosticReport {
  $lines=[Collections.Generic.List[string]]::new()
- $lines.Add('Budget Codex 1.2.10')
+ $lines.Add('Budget Codex 1.2.11')
  $lines.Add((T 'Source choisie')+': '+$script:sourceSelection)
  $lines.Add('Time zone: '+[TimeZoneInfo]::Local.Id)
  $lines.Add('')
