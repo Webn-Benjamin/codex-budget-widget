@@ -1,4 +1,6 @@
 ﻿$script:english = @{
+ "Encore {0} % disponibles aujourd’hui"="{0}% still available today"
+ "Consommé aujourd’hui : au moins {0} % · relevé incomplet"="Used today: at least {0}% · incomplete history"
  "Jours restants"="Days left"
  "Jours travaillés restants avant le reset, aujourd’hui inclus"="Working days before reset, including today"
  "Quota restant réparti jusqu’au reset"="Remaining quota shared until reset"

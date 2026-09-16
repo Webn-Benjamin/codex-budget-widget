@@ -388,6 +388,17 @@ function Show-State($s) {
   $ui.BonusLabel.Text=(T 'Jours restants'); $ui.Bonus.Text=[string]$plan.days; $ui.Bonus.Foreground='#AFBBC8'
   $ui.Bonus.ToolTip=(T "Jours travaillés restants avant le reset, aujourd’hui inclus")
   $ui.Context.Text=if ($plan.working_today) { (T "Quota restant réparti jusqu’au reset") } else { (T 'Jour de repos') }
+  if (-not $s.uncertain) {
+   $total=[double]$s.today_low+[double]$plan.available
+   $ui.UsageLabel.Text=(T "Utilisé aujourd’hui")
+   $ui.Used.Text="$(Format-Points $s.today_low) %"
+   $ui.Total.Text=" / $(Format-Points $total) %"
+   $ui.Used.FontSize=if ($ui.Used.Text.Length -gt 7) { 36 } else { 42 }
+   $ui.Fill.Width=312*[Math]::Min(1.0,[double]$s.today_low/[Math]::Max(0.000001,$total))
+   $ui.Context.Text=(T "Encore {0} % disponibles aujourd’hui") -f (Format-Points $plan.available)
+  } else {
+   $ui.Context.Text=(T "Consommé aujourd’hui : au moins {0} % · relevé incomplet") -f (Format-Points $s.today_low)
+  }
   $ui.Context.ToolTip=(T 'Le quota réel restant est partagé entre les jours travaillés avant le reset. La consommation passée est déjà déduite : aucun malus supplémentaire.')
   $ui.TomorrowLabel.Text=if ($plan.tomorrow_working) { (T 'Demain') } else { (T 'Demain · repos') }
   $ui.TomorrowValue.Text=if ($null -ne $plan.tomorrow_available) { "$(Format-Points $plan.tomorrow_available) %" } else { '—' }
@@ -486,7 +497,7 @@ function Show-Envelope($envelope) {
 }
 function Get-DiagnosticReport {
  $lines=[Collections.Generic.List[string]]::new()
- $lines.Add('Budget Codex 1.2.11')
+ $lines.Add('Budget Codex 1.2.12')
  $lines.Add((T 'Source choisie')+': '+$script:sourceSelection)
  $lines.Add('Time zone: '+[TimeZoneInfo]::Local.Id)
  $lines.Add('')

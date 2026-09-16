@@ -148,3 +148,17 @@ Assert ($ui.BonusLabel.Text -eq 'Days left' -and $ui.TomorrowValue.Text -eq '16.
 $state.remaining_plan.available=10;Show-State $state
 Assert ($ui.Used.Text -eq '10 %') 'Live remaining allocation not refreshed'
 Write-Output 'PASS: remaining quota allocation, no double deficit, FR/EN and live refresh.'
+
+$state.uncertain=$false;$state.today_low=3;$state.remaining_plan.available=8
+Set-Language fr
+Show-State $state
+Assert ($ui.Used.Text -eq '3 %' -and $ui.Total.Text -eq ' / 11 %') 'Used versus daily total missing'
+Assert ($ui.Context.Text -eq "Encore 8 % disponibles aujourd’hui") 'Remaining amount missing'
+Assert ([Math]::Abs($ui.Fill.Width-312*3/11) -lt 0.001) 'Daily progress incorrect'
+Set-Language en
+Assert ($ui.Context.Text -eq '8% still available today') 'English remaining amount missing'
+$state.today_low=4;$state.remaining_plan.available=7;Show-State $state
+Assert ($ui.Used.Text -eq '4 %' -and $ui.Total.Text -eq ' / 11 %') 'Usage refresh missing'
+$state.uncertain=$true;Show-State $state
+Assert ($ui.Used.Text -eq '7 %' -and $ui.Context.Text -like '*at least 4%*') 'Missing midnight history shown as exact'
+Write-Output 'PASS: daily used/total, available amount, progress, refresh and incomplete history in FR/EN.'
