@@ -1,7 +1,7 @@
 import unittest
 import random
 from datetime import datetime
-from budget import calculate as calculate_in_zone, parse, schedule, validate_workdays
+from budget import calculate as calculate_in_zone, parse, schedule, changed_schedule, validate_workdays
 from zoneinfo import ZoneInfo
 ZONE = ZoneInfo('Europe/Paris')
 
@@ -182,10 +182,10 @@ class BudgetTests(unittest.TestCase):
         changes=[dict(at=0,workdays=list(range(7))),dict(at=ts(10,10),workdays=[0,1,3,4,5])]
         old=calculate_in_zone(samples,list(range(7)),ZONE)
         new=calculate_in_zone(samples,[0,1,3,4,5],ZONE,schedule_changes=changes)
-        self.assertEqual(new['cap'],20)
+        self.assertAlmostEqual(new['cap'],(100-100/7)/5)
         self.assertAlmostEqual(new['opening_bonus_low'],old['opening_bonus_low'])
-        self.assertAlmostEqual(new['available']-old['available'],20-100/7)
-        self.assertAlmostEqual(new['planning_balance'],100/7+20-12)
+        self.assertAlmostEqual(new['available']-old['available'],(100-100/7)/5-100/7)
+        self.assertAlmostEqual(new['planning_balance'],100/7+(100-100/7)/5-12)
         # A new cycle uses the latest schedule, without old daily targets.
         new=calculate_in_zone([row(17,0,0,reset=ts(23,0))],[0,1,3,4,5],ZONE,schedule_changes=changes)
         self.assertEqual(new['opening_bonus_low'],0)
@@ -253,5 +253,47 @@ class BudgetTests(unittest.TestCase):
                         result=calculate_in_zone([row],days,ZONE)
                         self.assertAlmostEqual(result['planning_balance'],10)
                         self.assertIsNone(result['tomorrow_available'])
+
+    def test_removing_next_cycle_sunday_does_not_change_wednesday(self):
+        start=datetime(2026,9,12,10,38,tzinfo=ZONE)
+        reset=datetime(2026,9,19,10,38,tzinfo=ZONE)
+        at=datetime(2026,9,16,12,tzinfo=ZONE).timestamp()
+        before=[0,1,2,3,4,6]
+        after=[0,1,2,3,4]
+        sample=dict(account='test',at=at,reset=reset.timestamp(),used=45)
+        changes=[dict(at=0,workdays=before),dict(at=at,workdays=after)]
+        old=calculate_in_zone([sample],before,ZONE)
+        new=calculate_in_zone([sample],after,ZONE,schedule_changes=changes)
+        for field in ['cap','standard_cap','planning_balance','tomorrow_available','projected_tomorrow','opening_bonus_low']:
+            self.assertAlmostEqual(new[field],old[field],msg=field)
+        plan=changed_schedule(start,reset,after,changes)
+        self.assertAlmostEqual(sum(plan.values()),100)
+        self.assertAlmostEqual(plan[datetime(2026,9,13).date()],100/6)
+        next_reset=datetime(2026,9,26,10,38,tzinfo=ZONE)
+        next_plan=changed_schedule(reset,next_reset,after,changes)
+        self.assertNotIn(datetime(2026,9,20).date(),next_plan)
+        self.assertAlmostEqual(next_plan[datetime(2026,9,21).date()],20)
+
+    def test_removing_remaining_friday_redistributes_only_current_pool(self):
+        start=datetime(2026,9,12,10,38,tzinfo=ZONE)
+        reset=datetime(2026,9,19,10,38,tzinfo=ZONE)
+        at=datetime(2026,9,16,12,tzinfo=ZONE).timestamp()
+        before=[0,1,2,3,4,6];after=[0,1,2,6]
+        changes=[dict(at=0,workdays=before),dict(at=at,workdays=after)]
+        plan=changed_schedule(start,reset,after,changes)
+        self.assertAlmostEqual(sum(plan.values()),100)
+        self.assertAlmostEqual(plan[datetime(2026,9,16).date()],50)
+        self.assertAlmostEqual(plan[datetime(2026,9,13).date()],100/6)
+
+    def test_same_day_toggles_do_not_compound_allocation(self):
+        start=datetime(2026,9,12,10,38,tzinfo=ZONE)
+        reset=datetime(2026,9,19,10,38,tzinfo=ZONE)
+        at=datetime(2026,9,16,12,tzinfo=ZONE).timestamp()
+        days=[0,1,2,3,4,6]
+        changes=[dict(at=0,workdays=days),dict(at=at,workdays=[2]),dict(at=at+1,workdays=days)]
+        original=schedule(start,reset,days)
+        plan=changed_schedule(start,reset,days,changes)
+        for day in original:
+            self.assertAlmostEqual(plan[day],original[day])
 
 if __name__=='__main__': unittest.main()

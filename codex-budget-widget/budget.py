@@ -47,6 +47,32 @@ def schedule(start, reset, workdays):
     return {day: 100 * weight / total for day, weight in allowances.items()}
 
 
+def changed_schedule(start, reset, workdays, changes):
+    """Freeze past dates; redistribute only the unallocated part of this cycle."""
+    if not changes:
+        return schedule(start, reset, workdays)
+    by_date = {}
+    for change in sorted(changes, key=lambda c: c['at']):
+        day = datetime.fromtimestamp(change['at'], start.tzinfo).date()
+        by_date[day] = validate_workdays(change['workdays'])
+    baseline = workdays
+    for day, days in sorted(by_date.items()):
+        if day <= start.date():
+            baseline = days
+    plan = schedule(start, reset, baseline)
+    for effective, days in sorted(by_date.items()):
+        if effective <= start.date() or effective > reset.date():
+            continue
+        past = {day: value for day, value in plan.items() if day < effective}
+        future = {day: value for day, value in schedule(start, reset, days).items() if day >= effective}
+        pool = max(0, 100 - sum(past.values()))
+        weights = sum(future.values())
+        plan = dict(past)
+        if weights:
+            plan.update({day: pool * value / weights for day, value in future.items()})
+    return plan
+
+
 def parse(payload, now, model="codex"):
     if model == "spark":
         payload = dict(payload, rateLimitsByLimitId={"codex": dict(spark_quota(payload), limitId="codex")})
@@ -92,18 +118,18 @@ def calculate(rows, workdays=None, zone=None, schedule_changes=None):
     reset = datetime.fromtimestamp(current['reset'], zone)
     start = datetime.fromtimestamp(current['reset'] - 604800, zone)
     prior_days = max(0, (now.date() - start.date()).days)
-    allowances = schedule(start, reset, workdays)
-    if schedule_changes:
-        allowances = schedule(start, reset, list(range(7)))
-        changes = sorted(schedule_changes, key=lambda c: c['at'])
-        schedules = {}
-        for day in allowances:
-            applicable = [c for c in changes if datetime.fromtimestamp(c['at'], zone).date() <= day]
-            days = validate_workdays(applicable[-1]['workdays']) if applicable else workdays
-            key = tuple(days)
-            if key not in schedules:
-                schedules[key] = schedule(start, reset, days)
-            allowances[day] = schedules[key].get(day, 0)
+    allowances = changed_schedule(start, reset, workdays, schedule_changes)
+    # The displayed daily target must use this cycle's remaining allocation,
+    # not 100 divided by the next cycle's selected weekdays.
+    standard_cap = 0.0
+    for day, value in sorted(allowances.items()):
+        if day < now.date() or value <= 0:
+            continue
+        begin = datetime.combine(day, daytime(), zone).timestamp()
+        end = datetime.combine(day + timedelta(days=1), daytime(), zone).timestamp()
+        fraction = (min(end, reset.timestamp()) - max(begin, start.timestamp())) / (end - begin)
+        standard_cap = value / fraction
+        break
     cap = allowances.get(now.date(), 0)
     used = current['used']
     remaining = 100 - used
@@ -177,7 +203,7 @@ def calculate(rows, workdays=None, zone=None, schedule_changes=None):
                 balance_known=balance_known,
                 uncertain=previous_low != previous_high, cap=cap,
                 opening_bonus_low=opening_low, opening_bonus_high=opening_high,
-                workdays=workdays, standard_cap=100/len(workdays), working_today=cap > 0,
+                workdays=workdays, standard_cap=standard_cap, working_today=cap > 0,
                 workdays_left=days_left,
                 reset=current['reset'], reset_label=reset.strftime('%d/%m à %H:%M'),
                 day=now.strftime('%d/%m'), pace=min(available, remaining/max(1, days_left)) if available is not None and cap > 0 else None,

@@ -164,3 +164,7 @@ Les changements de planning prennent effet à partir d’aujourd’hui : les bud
 Reset time is included in daily budgets: partial working days at the start and end of a cycle are prorated. For a fixed schedule, all daily allocations in the cycle sum to 100%, including daylight-saving transitions. “Per day” remains the nominal full-day target; today's total uses the effective partial allowance plus carryover.
 
 L’heure du reset est prise en compte : les jours travaillés partiels au début et à la fin du cycle sont proratisés. À planning constant, la somme des budgets du cycle vaut 100 %, y compris au changement d’heure. « Par jour » reste la cible nominale d’une journée entière ; le total du jour utilise le budget partiel effectif avec le report.
+
+Workday edits redistribute only the allocation from today until the next reset, preserving past dates. Removing a weekday whose next occurrence is after the reset does not change this cycle's daily budget. The “Per day” figure follows the active cycle; the new full schedule applies at the next reset.
+
+Les modifications de jours redistribuent uniquement le budget d’aujourd’hui au prochain reset, en conservant les jours passés. Décocher un jour dont la prochaine occurrence est après le reset ne change pas le budget quotidien actuel. « Par jour » suit le cycle actif ; le nouveau planning complet s’applique au reset suivant.

@@ -3,7 +3,7 @@ import json
 import os
 import time
 
-VERSION = '1.2.9'
+VERSION = '1.2.10'
 EVENTS = {'connecting', 'connected', 'reading', 'quotas_ok', 'snapshot_mode', 'unavailable', 'error'}
 STAGES = {'discovery', 'launch', 'initialize', 'account/read', 'account/rateLimits/read', 'parse', 'refresh', 'settings'}
 CODES = {'codex_missing', 'wsl_missing', 'invalid_source', 'login_required', 'wsl_login_required',
