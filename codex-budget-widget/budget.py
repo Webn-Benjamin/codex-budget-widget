@@ -30,7 +30,7 @@ def validate_workdays(days):
 
 
 def schedule(start, reset, workdays):
-    """A selected civil day has a full daily target; the real quota caps spending."""
+    """Distribute 100 points across working-day fractions inside the exact cycle."""
     zone = start.tzinfo
     allowances = {}
     day = start.date()
@@ -39,11 +39,12 @@ def schedule(start, reset, workdays):
         end = datetime.combine(day + timedelta(days=1), daytime(), zone).timestamp()
         overlap = max(0, min(end, reset.timestamp()) - max(begin, start.timestamp()))
         if day.weekday() in workdays and overlap:
-            allowances[day] = 100 / len(workdays)
+            allowances[day] = overlap / (end - begin)
         day += timedelta(days=1)
     if not allowances:
         raise ValueError('Aucun jour travaillé avant le reset.')
-    return allowances
+    total = sum(allowances.values())
+    return {day: 100 * weight / total for day, weight in allowances.items()}
 
 
 def parse(payload, now, model="codex"):
@@ -95,10 +96,14 @@ def calculate(rows, workdays=None, zone=None, schedule_changes=None):
     if schedule_changes:
         allowances = schedule(start, reset, list(range(7)))
         changes = sorted(schedule_changes, key=lambda c: c['at'])
+        schedules = {}
         for day in allowances:
             applicable = [c for c in changes if datetime.fromtimestamp(c['at'], zone).date() <= day]
             days = validate_workdays(applicable[-1]['workdays']) if applicable else workdays
-            allowances[day] = 100 / len(days) if day.weekday() in days else 0
+            key = tuple(days)
+            if key not in schedules:
+                schedules[key] = schedule(start, reset, days)
+            allowances[day] = schedules[key].get(day, 0)
     cap = allowances.get(now.date(), 0)
     used = current['used']
     remaining = 100 - used

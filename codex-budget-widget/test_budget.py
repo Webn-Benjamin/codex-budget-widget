@@ -80,10 +80,10 @@ class BudgetTests(unittest.TestCase):
         r=calculate([row(9,0)], [0,2,4])
         self.assertAlmostEqual(r['cap'],100/3)
 
-    def test_daily_target_is_not_prorated_by_reset_hour(self):
+    def test_daily_target_is_prorated_by_reset_hour(self):
         allowances=schedule(datetime.fromtimestamp(ts(9,8),ZONE),datetime.fromtimestamp(ts(16,8),ZONE),[0,1,2,3,4])
-        self.assertEqual(allowances[datetime(2026,9,9).date()],20)
-        self.assertEqual(allowances[datetime(2026,9,16).date()],20)
+        self.assertAlmostEqual(allowances[datetime(2026,9,9).date()],20*16/24)
+        self.assertAlmostEqual(allowances[datetime(2026,9,16).date()],20*8/24)
 
     def test_empty_schedule_rejected(self):
         with self.assertRaises(ValueError): validate_workdays([])
@@ -207,5 +207,51 @@ class BudgetTests(unittest.TestCase):
         r=calculate([row(14,99)])
         self.assertGreaterEqual(r['projected_tomorrow'],0)
         self.assertLessEqual(r['projected_tomorrow'],r['remaining'])
+
+    def test_saturday_1038_cycle_allocates_exactly_100(self):
+        start=datetime(2026,9,12,10,38,tzinfo=ZONE)
+        reset=datetime(2026,9,19,10,38,tzinfo=ZONE)
+        for days in [list(range(7)),list(range(5)),[5]]:
+            plan=schedule(start,reset,days)
+            self.assertAlmostEqual(sum(plan.values()),100)
+        plan=schedule(start,reset,list(range(7)))
+        self.assertAlmostEqual(plan[start.date()],100/7*(1-638/1440))
+        self.assertAlmostEqual(plan[reset.date()],100/7*638/1440)
+        rows=[dict(account='a',reset=reset.timestamp(),at=datetime(2026,9,19,9,tzinfo=ZONE).timestamp(),used=95)]
+        r=calculate_in_zone(rows,list(range(7)),ZONE)
+        self.assertAlmostEqual(r['planning_balance'],5)
+        self.assertIsNone(r['tomorrow_available'])
+        changes=[dict(at=0,workdays=list(range(7)))]
+        revised=calculate_in_zone(rows,list(range(7)),ZONE,schedule_changes=changes)
+        self.assertAlmostEqual(revised['cap'],r['cap'])
+        self.assertAlmostEqual(revised['planning_balance'],5)
+
+    def test_dst_and_arbitrary_workdays_keep_total_100(self):
+        for month,day in [(3,29),(10,25)]:
+            reset=datetime(2026,month,day,10,38,tzinfo=ZONE)
+            start=datetime.fromtimestamp(reset.timestamp()-604800,ZONE)
+            for days in [list(range(7)),list(range(5)),[6],[0,3,6]]:
+                plan=schedule(start,reset,days)
+                self.assertAlmostEqual(sum(plan.values()),100)
+                self.assertTrue(all(value>0 for value in plan.values()))
+
+    def test_every_reset_weekday_and_time(self):
+        from datetime import timedelta
+        for day in range(14,21):
+            for hour,minute in [(0,0),(0,1),(3,17),(10,38),(16,45),(23,59)]:
+                reset=datetime(2026,9,day,hour,minute,tzinfo=ZONE)
+                start=datetime.fromtimestamp(reset.timestamp()-604800,ZONE)
+                for days in [list(range(7)),list(range(5)),[reset.weekday()],[0,2,5]]:
+                    with self.subTest(reset=reset,days=days):
+                        plan=schedule(start,reset,days)
+                        self.assertAlmostEqual(sum(plan.values()),100)
+                        if reset.weekday() in days and (hour or minute):
+                            self.assertAlmostEqual(plan[reset.date()],100/len(days)*(hour*60+minute)/1440)
+                        if not (hour or minute):
+                            self.assertNotIn(reset.date(),plan)
+                        row=dict(account='a',reset=reset.timestamp(),at=reset.timestamp()-1,used=90)
+                        result=calculate_in_zone([row],days,ZONE)
+                        self.assertAlmostEqual(result['planning_balance'],10)
+                        self.assertIsNone(result['tomorrow_available'])
 
 if __name__=='__main__': unittest.main()

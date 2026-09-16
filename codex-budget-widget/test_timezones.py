@@ -25,7 +25,9 @@ class TimezoneTests(unittest.TestCase):
                 start=datetime(*date,tzinfo=zone)
                 end=start+timedelta(days=1)
                 self.assertEqual((end.timestamp()-start.timestamp())/3600,duration)
-                self.assertEqual(list(schedule(start,end,list(range(7))).values()),[100/7])
+                plan=schedule(start,start+timedelta(days=7),list(range(7)))
+                self.assertAlmostEqual(plan[start.date()],100/7)
+                self.assertAlmostEqual(sum(plan.values()),100)
                 rows=[dict(account='a',at=start.timestamp(),reset=end.timestamp()+86400,used=10),dict(account='a',at=(start+timedelta(hours=12)).timestamp(),reset=end.timestamp()+86400,used=13)]
                 result=calculate(rows,list(range(7)),zone=zone)
                 self.assertFalse(result['uncertain'])
