@@ -385,11 +385,11 @@ function Show-State($s) {
   $ui.Used.Foreground='#6DE0B9'; $ui.Fill.Background='#6DE0B9'
   $ui.Fill.Width=312*[Math]::Min(1.0,[double]$plan.available/[Math]::Max(0.000001,[double]$s.remaining))
   $ui.Daily.Text="$(Format-Points $plan.daily) %"
-  $ui.BonusLabel.Text=(T 'Jours restants'); $ui.Bonus.Text=[string]$plan.days; $ui.Bonus.Foreground='#AFBBC8'
+  $ui.BonusLabel.Text=(T 'Jours restants'); $ui.Bonus.Text=if ($null -ne $plan.day_equivalents -and [Math]::Abs($plan.day_equivalents-$plan.days) -gt 0.000001) { (Format-Points $plan.day_equivalents) } else { [string]$plan.days }; $ui.Bonus.Foreground='#AFBBC8'
   $ui.Bonus.ToolTip=(T "Jours travaillés restants avant le reset, aujourd’hui inclus")
   $ui.Context.Text=if ($plan.working_today) { (T "Quota restant réparti jusqu’au reset") } else { (T 'Jour de repos') }
   if (-not $s.uncertain) {
-   $total=[double]$s.today_low+[double]$plan.available
+   $total=if ($null -ne $plan.total_today) { [double]$plan.total_today } else { [double]$s.today_low+[double]$plan.available }
    $ui.UsageLabel.Text=(T "Utilisé aujourd’hui")
    $ui.Used.Text="$(Format-Points $s.today_low) %"
    $ui.Total.Text=" / $(Format-Points $total) %"
@@ -497,7 +497,7 @@ function Show-Envelope($envelope) {
 }
 function Get-DiagnosticReport {
  $lines=[Collections.Generic.List[string]]::new()
- $lines.Add('Budget Codex 1.2.12')
+ $lines.Add('Budget Codex 1.2.13')
  $lines.Add((T 'Source choisie')+': '+$script:sourceSelection)
  $lines.Add('Time zone: '+[TimeZoneInfo]::Local.Id)
  $lines.Add('')

@@ -162,3 +162,11 @@ Assert ($ui.Used.Text -eq '4 %' -and $ui.Total.Text -eq ' / 11 %') 'Usage refres
 $state.uncertain=$true;Show-State $state
 Assert ($ui.Used.Text -eq '7 %' -and $ui.Context.Text -like '*at least 4%*') 'Missing midnight history shown as exact'
 Write-Output 'PASS: daily used/total, available amount, progress, refresh and incomplete history in FR/EN.'
+
+$state.uncertain=$false;$state.today_low=12;$state.remaining_plan.available=0.5;$state.remaining_plan.daily=12.5
+$state.remaining_plan | Add-Member total_today 12.5 -Force
+Show-State $state
+Assert ($ui.Used.Text -eq '12 %' -and $ui.Total.Text -eq ' / 12.5 %') 'Fixed daily target missing'
+$state.today_low=13;$state.remaining_plan.available=0;Show-State $state
+Assert ($ui.Total.Text -eq ' / 12.5 %') 'Overspending inflated daily total'
+Write-Output 'PASS: fixed daily target including overspending.'

@@ -144,3 +144,7 @@ La carte **Demain** indique le budget prévu au début de demain si vous ne cons
 The main display shows usage today / total daily budget (used today + available now), with the remaining daily amount underneath. If midnight usage is unknown, it keeps the available amount and labels measured usage as a lower bound.
 
 L’affichage principal indique la consommation du jour / le budget total (consommé aujourd’hui + disponible maintenant), avec le solde du jour dessous. Si le relevé à minuit manque, le widget conserve le disponible et indique une consommation minimale, sans inventer un chiffre exact.
+
+The daily target now uses quota remaining at the start of today (current remaining + known usage today). Spending reduces today’s available amount without increasing the target. Example: 25% across Thursday and Friday gives 12.5%; after using 12%, 0.5% remains for today. Partial reset days are shown as weighted days.
+
+Le total du jour utilise désormais le quota au début de la journée (reste actuel + consommation du jour connue). Consommer réduit le disponible sans augmenter la cible. Exemple : 25 % sur jeudi et vendredi donne 12,5 % ; après 12 % utilisés, il reste 0,5 % pour aujourd’hui. Les jours partiels au reset sont affichés en jours pondérés.

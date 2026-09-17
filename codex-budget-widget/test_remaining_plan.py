@@ -39,3 +39,23 @@ class RemainingPlanTests(unittest.TestCase):
             r=remaining_plan(now,reset,[0,1,2,3,4],33,average)
             if average is None:self.assertIsNone(r['projected_tomorrow'])
             else:self.assertTrue(0 <= r['projected_tomorrow'] <= r['tomorrow_available'] <=33)
+
+    def test_reported_thursday_12_used_13_left_saturday_off(self):
+        now=datetime(2026,9,17,20,12,tzinfo=Z);reset=datetime(2026,9,19,10,31,tzinfo=Z)
+        r=remaining_plan(now,reset,[0,1,2,3,4,6],13,16.1,today_used=12)
+        self.assertEqual((r['total_today'],r['available'],r['daily'],r['days']),(12.5,0.5,12.5,2))
+        self.assertEqual(r['tomorrow_available'],13)
+
+    def test_spending_does_not_increase_daily_target(self):
+        now=datetime(2026,9,16,9,tzinfo=Z);reset=datetime(2026,9,19,10,31,tzinfo=Z)
+        for spent in [0,1,3,11,12,25,33]:
+            r=remaining_plan(now,reset,[0,1,2,3,4,6],33-spent,today_used=spent)
+            self.assertEqual(r['total_today'],11)
+            self.assertEqual(r['available'],max(0,11-spent))
+
+    def test_partial_saturday_overspend_keeps_original_target(self):
+        now=datetime(2026,9,17,20,12,tzinfo=Z);reset=datetime(2026,9,19,10,31,tzinfo=Z)
+        r=remaining_plan(now,reset,list(range(7)),13,today_used=12)
+        self.assertAlmostEqual(r['total_today'],25/(2+631/1440))
+        self.assertEqual(r['available'],0)
+        self.assertAlmostEqual(r['day_equivalents'],2+631/1440)
