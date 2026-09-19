@@ -286,6 +286,7 @@ function Show-Carry([double]$value) {
  $ui.Bonus.ToolTip=(T "Le report positif augmente le budget ; le malus le réduit jusqu’au reset hebdomadaire.")
 }
 function Show-State($s) {
+ $ui.Track.Visibility='Visible'
  Show-Carry 0
  $script:lastState=$s
  $ui.Status.ToolTip=$s.source
@@ -400,6 +401,14 @@ function Show-State($s) {
    $ui.Context.Text=(T "Consommé aujourd’hui : au moins {0} % · relevé incomplet") -f (Format-Points $s.today_low)
   }
   $ui.Context.ToolTip=(T 'Le quota réel restant est partagé entre les jours travaillés avant le reset. La consommation passée est déjà déduite : aucun malus supplémentaire.')
+  if (-not $plan.working_today) {
+   $ui.UsageLabel.Text=(T "Utilisé aujourd’hui")
+   $ui.Used.Text=if ($s.uncertain) { "≥ $(Format-Points $s.today_low) %" } else { "$(Format-Points $s.today_low) %" }
+   $ui.Used.FontSize=if ($ui.Used.Text.Length -gt 7) { 36 } else { 42 }
+   $ui.Total.Text=''; $ui.Fill.Width=0; $ui.Track.Visibility='Collapsed'
+   $ui.Context.Text=(T 'Jour non travaillé · aucun objectif quotidien')
+   $ui.Context.ToolTip=(T 'Votre quota global reste utilisable. La consommation de ce jour est déduite des budgets des prochains jours travaillés.')
+  }
   $ui.TomorrowLabel.Text=if ($plan.tomorrow_working) { (T 'Demain') } else { (T 'Demain · repos') }
   $ui.TomorrowValue.Text=if ($null -ne $plan.tomorrow_available) { "$(Format-Points $plan.tomorrow_available) %" } else { '—' }
   $ui.ProjectionValue.Text=if ($null -ne $plan.projected_tomorrow) { "≈ $(Format-Points $plan.projected_tomorrow) %" } else { '—' }
@@ -497,7 +506,7 @@ function Show-Envelope($envelope) {
 }
 function Get-DiagnosticReport {
  $lines=[Collections.Generic.List[string]]::new()
- $lines.Add('Budget Codex 1.2.13')
+ $lines.Add('Budget Codex 1.2.14')
  $lines.Add((T 'Source choisie')+': '+$script:sourceSelection)
  $lines.Add('Time zone: '+[TimeZoneInfo]::Local.Id)
  $lines.Add('')

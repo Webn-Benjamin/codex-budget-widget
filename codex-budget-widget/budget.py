@@ -64,7 +64,7 @@ def remaining_plan(now, reset, workdays, remaining, average_usage=None, today_us
             weights[day] = overlap / (end - begin)
         day += timedelta(days=1)
     weight = sum(weights.values())
-    opening_remaining = remaining + today_used if today_used is not None else remaining
+    opening_remaining = remaining + today_used if today_used is not None and now.date() in weights else remaining
     daily = opening_remaining / weight if weight else 0
     target = daily * weights.get(now.date(), 0)
     today = min(remaining, max(0, target - (today_used or 0)))

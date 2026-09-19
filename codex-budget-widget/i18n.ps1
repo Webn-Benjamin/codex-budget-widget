@@ -1,4 +1,6 @@
 ﻿$script:english = @{
+ "Jour non travaillé · aucun objectif quotidien"="Day off · no daily target"
+ "Votre quota global reste utilisable. La consommation de ce jour est déduite des budgets des prochains jours travaillés."="Your remaining quota can still be used. Usage on this day reduces the budgets of upcoming working days."
  "Encore {0} % disponibles aujourd’hui"="{0}% still available today"
  "Consommé aujourd’hui : au moins {0} % · relevé incomplet"="Used today: at least {0}% · incomplete history"
  "Jours restants"="Days left"

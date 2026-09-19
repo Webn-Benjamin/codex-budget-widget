@@ -170,3 +170,19 @@ Assert ($ui.Used.Text -eq '12 %' -and $ui.Total.Text -eq ' / 12.5 %') 'Fixed dai
 $state.today_low=13;$state.remaining_plan.available=0;Show-State $state
 Assert ($ui.Total.Text -eq ' / 12.5 %') 'Overspending inflated daily total'
 Write-Output 'PASS: fixed daily target including overspending.'
+
+$state.uncertain=$false;$state.today_low=2;$state.remaining=98;$state.remaining_plan.working_today=$false
+$state.remaining_plan.available=0;$state.remaining_plan.total_today=0;$state.remaining_plan.daily=98/6
+Set-Language fr
+Show-State $state
+Assert ($ui.Used.Text -eq '2 %' -and $ui.Total.Text -eq '') 'Day off shows usage against zero'
+Assert ($ui.Context.Text -eq 'Jour non travaillé · aucun objectif quotidien') 'Day off explanation missing'
+Assert ($ui.Track.Visibility -eq 'Collapsed' -and $ui.Fill.Width -eq 0) 'Day off shows full progress'
+Assert ($ui.Daily.Text -eq '16,3 %') 'Day off future allowance incorrect'
+Set-Language en
+Assert ($ui.Context.Text -eq 'Day off · no daily target') 'English day off explanation missing'
+$state.uncertain=$true;Show-State $state
+Assert ($ui.Used.Text -eq '≥ 2 %') 'Uncertain day off usage shown as exact'
+$state.uncertain=$false;$state.remaining_plan.working_today=$true;$state.remaining_plan.total_today=10;$state.remaining_plan.available=8;Show-State $state
+Assert ($ui.Track.Visibility -eq 'Visible' -and $ui.Total.Text -eq ' / 10 %') 'Working day progress not restored'
+Write-Output 'PASS: day off usage, no zero denominator, future budget, FR/EN, incomplete history and working-day recovery.'

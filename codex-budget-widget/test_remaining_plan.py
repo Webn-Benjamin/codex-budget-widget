@@ -59,3 +59,13 @@ class RemainingPlanTests(unittest.TestCase):
         self.assertAlmostEqual(r['total_today'],25/(2+631/1440))
         self.assertEqual(r['available'],0)
         self.assertAlmostEqual(r['day_equivalents'],2+631/1440)
+
+    def test_day_off_usage_reduces_future_daily_amount(self):
+        now=datetime(2026,9,19,21,tzinfo=Z);reset=datetime(2026,9,26,11,55,tzinfo=Z)
+        for spent in [0,2,25,100]:
+            r=remaining_plan(now,reset,[0,1,2,3,4,6],100-spent,today_used=spent)
+            self.assertFalse(r['working_today'])
+            self.assertEqual(r['available'],0)
+            self.assertAlmostEqual(r['daily'],(100-spent)/6)
+            self.assertAlmostEqual(r['tomorrow_available'],r['daily'])
+            self.assertEqual(r['days'],6)

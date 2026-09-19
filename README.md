@@ -148,3 +148,7 @@ L’affichage principal indique la consommation du jour / le budget total (conso
 The daily target now uses quota remaining at the start of today (current remaining + known usage today). Spending reduces today’s available amount without increasing the target. Example: 25% across Thursday and Friday gives 12.5%; after using 12%, 0.5% remains for today. Partial reset days are shown as weighted days.
 
 Le total du jour utilise désormais le quota au début de la journée (reste actuel + consommation du jour connue). Consommer réduit le disponible sans augmenter la cible. Exemple : 25 % sur jeudi et vendredi donne 12,5 % ; après 12 % utilisés, il reste 0,5 % pour aujourd’hui. Les jours partiels au reset sont affichés en jours pondérés.
+
+On days off, usage is displayed without a daily target or progress bar. The remaining weekly quota is still usable. Any usage on a day off reduces the amount divided across upcoming working days.
+
+Les jours non travaillés, la consommation est affichée sans objectif quotidien ni barre de progression. Le quota hebdomadaire restant reste utilisable. La consommation du jour réduit le montant réparti sur les prochains jours travaillés.
