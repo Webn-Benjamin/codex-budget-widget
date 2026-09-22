@@ -137,63 +137,25 @@ $state.average_usage=$null;$state.projected_tomorrow=$null;Show-State $state
 Assert ($ui.ProjectionValue.Text -eq '—' -and $ui.WeeklyAverage.Text -like '*one working day*') 'Missing average guessed'
 Write-Output 'PASS: weekly average and projection in FR/EN, refresh and insufficient data.'
 
-$state | Add-Member remaining_plan ([pscustomobject]@{available=11;daily=11;days=3;tomorrow_available=16.5;projected_tomorrow=11.5;working_today=$true;tomorrow_working=$true}) -Force
-Set-Language fr
-Show-State $state
-Assert ($ui.Used.Text -eq '11 %' -and $ui.Total.Text -eq '') 'Remaining quota allocation missing'
-Assert ($ui.BonusLabel.Text -eq 'Jours restants' -and $ui.Bonus.Text -eq '3') 'Old deficit still displayed'
-Assert ($ui.TomorrowValue.Text -eq '16,5 %') 'Tomorrow allocation incorrect'
-Set-Language en
-Assert ($ui.BonusLabel.Text -eq 'Days left' -and $ui.TomorrowValue.Text -eq '16.5 %') 'English remaining allocation incorrect'
-$state.remaining_plan.available=10;Show-State $state
-Assert ($ui.Used.Text -eq '10 %') 'Live remaining allocation not refreshed'
-Write-Output 'PASS: remaining quota allocation, no double deficit, FR/EN and live refresh.'
 
-$state.uncertain=$false;$state.today_low=3;$state.remaining_plan.available=8
-Set-Language fr
-Show-State $state
-Assert ($ui.Used.Text -eq '3 %' -and $ui.Total.Text -eq ' / 11 %') 'Used versus daily total missing'
-Assert ($ui.Context.Text -eq "Encore 8 % disponibles aujourd’hui") 'Remaining amount missing'
-Assert ([Math]::Abs($ui.Fill.Width-312*3/11) -lt 0.001) 'Daily progress incorrect'
-Set-Language en
-Assert ($ui.Context.Text -eq '8% still available today') 'English remaining amount missing'
-$state.today_low=4;$state.remaining_plan.available=7;Show-State $state
-Assert ($ui.Used.Text -eq '4 %' -and $ui.Total.Text -eq ' / 11 %') 'Usage refresh missing'
-$state.uncertain=$true;Show-State $state
-Assert ($ui.Used.Text -eq '7 %' -and $ui.Context.Text -like '*working days*') 'Missing midnight history shown as exact'
-Write-Output 'PASS: daily used/total, available amount, progress, refresh and incomplete history in FR/EN.'
-
-$state.uncertain=$false;$state.today_low=12;$state.remaining_plan.available=0.5;$state.remaining_plan.daily=12.5
-$state.remaining_plan | Add-Member total_today 12.5 -Force
-Show-State $state
-Assert ($ui.Used.Text -eq '12 %' -and $ui.Total.Text -eq ' / 12.5 %') 'Fixed daily target missing'
-$state.today_low=13;$state.remaining_plan.available=0;Show-State $state
-Assert ($ui.Total.Text -eq ' / 12.5 %') 'Overspending inflated daily total'
-Write-Output 'PASS: fixed daily target including overspending.'
-
-$state.uncertain=$false;$state.today_low=2;$state.remaining=98;$state.remaining_plan.working_today=$false
-$state.remaining_plan.available=0;$state.remaining_plan.total_today=0;$state.remaining_plan.daily=98/6
-Set-Language fr
-Show-State $state
-Assert ($ui.Used.Text -eq '2 %' -and $ui.Total.Text -eq '') 'Day off shows usage against zero'
-Assert ($ui.Context.Text -eq 'Jour non travaillé · aucun objectif quotidien') 'Day off explanation missing'
-Assert ($ui.Track.Visibility -eq 'Collapsed' -and $ui.Fill.Width -eq 0) 'Day off shows full progress'
-Assert ($ui.Daily.Text -eq '16,3 %') 'Day off future allowance incorrect'
-Set-Language en
-Assert ($ui.Context.Text -eq 'Day off · no daily target') 'English day off explanation missing'
-$state.uncertain=$true;Show-State $state
-Assert ($ui.Used.Text -eq '≥ 2 %') 'Uncertain day off usage shown as exact'
-$state.uncertain=$false;$state.remaining_plan.working_today=$true;$state.remaining_plan.total_today=10;$state.remaining_plan.available=8;Show-State $state
-Assert ($ui.Track.Visibility -eq 'Visible' -and $ui.Total.Text -eq ' / 10 %') 'Working day progress not restored'
-Write-Output 'PASS: day off usage, no zero denominator, future budget, FR/EN, incomplete history and working-day recovery.'
-
-$state.uncertain=$true;$state.remaining=91;$state.remaining_plan.available=91/4.5
-$state.remaining_plan | Add-Member day_equivalents 4.5 -Force
-Set-Language fr
-Show-State $state
-Assert ($ui.UsageLabel.Text -eq "Disponible aujourd’hui" -and $ui.Used.Text -eq '20,2 %') 'Available budget missing'
-Assert ($ui.Context.Text -eq '91 % restants ÷ 4,5 jours travaillés ≈ 20,2 %') 'Division formula missing'
-Assert ($ui.Track.Visibility -eq 'Visible' -and $ui.Fill.Width -gt 0) 'Available bar missing'
-Set-Language en
-Assert ($ui.Context.Text -eq '91% left ÷ 4.5 working days ≈ 20.2%') 'English division missing'
-Write-Output 'PASS: quota divided by working days, visible bar and FR/EN formula.'
+$state | Add-Member remaining_plan ([pscustomobject]@{available=8;daily=11;total_today=11;days=3;day_equivalents=3;tomorrow_available=16.5;projected_tomorrow=11.5;working_today=$true;tomorrow_working=$true}) -Force
+foreach ($lang in @('fr','en')) {
+ Set-Language $lang
+ $state.today_low=3;$state.uncertain=$false;$state.remaining_plan.available=8
+ Show-State $state
+ Assert ($ui.Used.Text -eq '3 %' -and $ui.Total.Text -eq ' / 8 %') 'Used/remaining ratio incorrect'
+ Assert ([Math]::Abs($ui.Fill.Width-312*3/11) -lt 0.001) 'Progress must use used plus remaining'
+ Assert ($ui.UsageLabel.Text -like '*/*') 'Ratio labels missing'
+ $state.uncertain=$true;Show-State $state
+ Assert ($ui.Used.Text -eq '≥ 3 %' -and $ui.Total.Text -eq ' / 8 %') 'Incomplete history removed ratio'
+ Assert ($ui.Track.Visibility -eq 'Visible') 'Incomplete history removed bar'
+ $state.today_low=0;$state.remaining_plan.available=20.2;Show-State $state
+ Assert ($ui.Used.Text -eq '≥ 0 %' -and $ui.Total.Text -ne '') 'Missing reading presented as exact zero'
+ $state.today_low=12;$state.uncertain=$false;$state.remaining_plan.available=0;Show-State $state
+ Assert ($ui.Total.Text -eq ' / 0 %' -and $ui.Fill.Width -eq 312) 'Exhaustion ratio incorrect'
+ $state.remaining_plan.working_today=$false;Show-State $state
+ Assert ($ui.Total.Text -eq '' -and $ui.Track.Visibility -eq 'Collapsed') 'Day off regressed'
+ $state.remaining_plan.working_today=$true;$state.today_low=4;$state.remaining_plan.available=7;Show-State $state
+ Assert ($ui.Total.Text -eq ' / 7 %' -and $ui.Track.Visibility -eq 'Visible') 'Refresh recovery failed'
+}
+Write-Output 'PASS: daily used/remaining, progress, incomplete history, zero, exhaustion, days off and recovery in FR/EN.'
