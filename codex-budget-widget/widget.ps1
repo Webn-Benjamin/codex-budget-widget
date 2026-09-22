@@ -287,6 +287,7 @@ function Show-Carry([double]$value) {
 }
 function Show-State($s) {
  $ui.Track.Visibility='Visible'
+ $ui.Used.ToolTip=$null
  Show-Carry 0
  $script:lastState=$s
  $ui.Status.ToolTip=$s.source
@@ -398,7 +399,9 @@ function Show-State($s) {
    $ui.Fill.Width=312*[Math]::Min(1.0,[double]$s.today_low/[Math]::Max(0.000001,$total))
    $ui.Context.Text=(T "Encore {0} % disponibles aujourd’hui") -f (Format-Points $plan.available)
   } else {
-   $ui.Context.Text=(T "Consommé aujourd’hui : au moins {0} % · relevé incomplet") -f (Format-Points $s.today_low)
+   $days=if ($null -ne $plan.day_equivalents) { $plan.day_equivalents } else { $plan.days }
+   $ui.Context.Text=(T "{0} % restants ÷ {1} jours travaillés ≈ {2} %") -f (Format-Points $s.remaining),(Format-Points $days),(Format-Points $plan.available)
+   $ui.Used.ToolTip=(T "Quota réel restant réparti sur les jours travaillés avant le reset")
   }
   $ui.Context.ToolTip=(T 'Le quota réel restant est partagé entre les jours travaillés avant le reset. La consommation passée est déjà déduite : aucun malus supplémentaire.')
   if (-not $plan.working_today) {
@@ -506,7 +509,7 @@ function Show-Envelope($envelope) {
 }
 function Get-DiagnosticReport {
  $lines=[Collections.Generic.List[string]]::new()
- $lines.Add('Budget Codex 1.2.14')
+ $lines.Add('Budget Codex 1.2.15')
  $lines.Add((T 'Source choisie')+': '+$script:sourceSelection)
  $lines.Add('Time zone: '+[TimeZoneInfo]::Local.Id)
  $lines.Add('')

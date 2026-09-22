@@ -1,4 +1,6 @@
 ﻿$script:english = @{
+ "{0} % restants ÷ {1} jours travaillés ≈ {2} %"="{0}% left ÷ {1} working days ≈ {2}%"
+ "Quota réel restant réparti sur les jours travaillés avant le reset"="Actual remaining quota divided across working days before reset"
  "Jour non travaillé · aucun objectif quotidien"="Day off · no daily target"
  "Votre quota global reste utilisable. La consommation de ce jour est déduite des budgets des prochains jours travaillés."="Your remaining quota can still be used. Usage on this day reduces the budgets of upcoming working days."
  "Encore {0} % disponibles aujourd’hui"="{0}% still available today"

@@ -160,7 +160,7 @@ Assert ($ui.Context.Text -eq '8% still available today') 'English remaining amou
 $state.today_low=4;$state.remaining_plan.available=7;Show-State $state
 Assert ($ui.Used.Text -eq '4 %' -and $ui.Total.Text -eq ' / 11 %') 'Usage refresh missing'
 $state.uncertain=$true;Show-State $state
-Assert ($ui.Used.Text -eq '7 %' -and $ui.Context.Text -like '*at least 4%*') 'Missing midnight history shown as exact'
+Assert ($ui.Used.Text -eq '7 %' -and $ui.Context.Text -like '*working days*') 'Missing midnight history shown as exact'
 Write-Output 'PASS: daily used/total, available amount, progress, refresh and incomplete history in FR/EN.'
 
 $state.uncertain=$false;$state.today_low=12;$state.remaining_plan.available=0.5;$state.remaining_plan.daily=12.5
@@ -186,3 +186,14 @@ Assert ($ui.Used.Text -eq '≥ 2 %') 'Uncertain day off usage shown as exact'
 $state.uncertain=$false;$state.remaining_plan.working_today=$true;$state.remaining_plan.total_today=10;$state.remaining_plan.available=8;Show-State $state
 Assert ($ui.Track.Visibility -eq 'Visible' -and $ui.Total.Text -eq ' / 10 %') 'Working day progress not restored'
 Write-Output 'PASS: day off usage, no zero denominator, future budget, FR/EN, incomplete history and working-day recovery.'
+
+$state.uncertain=$true;$state.remaining=91;$state.remaining_plan.available=91/4.5
+$state.remaining_plan | Add-Member day_equivalents 4.5 -Force
+Set-Language fr
+Show-State $state
+Assert ($ui.UsageLabel.Text -eq "Disponible aujourd’hui" -and $ui.Used.Text -eq '20,2 %') 'Available budget missing'
+Assert ($ui.Context.Text -eq '91 % restants ÷ 4,5 jours travaillés ≈ 20,2 %') 'Division formula missing'
+Assert ($ui.Track.Visibility -eq 'Visible' -and $ui.Fill.Width -gt 0) 'Available bar missing'
+Set-Language en
+Assert ($ui.Context.Text -eq '91% left ÷ 4.5 working days ≈ 20.2%') 'English division missing'
+Write-Output 'PASS: quota divided by working days, visible bar and FR/EN formula.'
