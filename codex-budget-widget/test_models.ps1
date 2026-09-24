@@ -143,19 +143,25 @@ foreach ($lang in @('fr','en')) {
  Set-Language $lang
  $state.today_low=3;$state.uncertain=$false;$state.remaining_plan.available=8
  Show-State $state
- Assert ($ui.Used.Text -eq '3 %' -and $ui.Total.Text -eq ' / 8 %') 'Used/remaining ratio incorrect'
+ Assert ($ui.Used.Text -eq '3 %' -and $ui.Total.Text -eq ' / 11 %') 'Used/remaining ratio incorrect'
  Assert ([Math]::Abs($ui.Fill.Width-312*3/11) -lt 0.001) 'Progress must use used plus remaining'
  Assert ($ui.UsageLabel.Text -like '*/*') 'Ratio labels missing'
  $state.uncertain=$true;Show-State $state
- Assert ($ui.Used.Text -eq '≥ 3 %' -and $ui.Total.Text -eq ' / 8 %') 'Incomplete history removed ratio'
+ Assert ($ui.Used.Text -eq '≥ 3 %' -and $ui.Total.Text -eq ' / 11 %') 'Incomplete history removed ratio'
  Assert ($ui.Track.Visibility -eq 'Visible') 'Incomplete history removed bar'
  $state.today_low=0;$state.remaining_plan.available=20.2;Show-State $state
  Assert ($ui.Used.Text -eq '≥ 0 %' -and $ui.Total.Text -ne '') 'Missing reading presented as exact zero'
  $state.today_low=12;$state.uncertain=$false;$state.remaining_plan.available=0;Show-State $state
- Assert ($ui.Total.Text -eq ' / 0 %' -and $ui.Fill.Width -eq 312) 'Exhaustion ratio incorrect'
+ Assert ($ui.Total.Text -eq ' / 11 %' -and $ui.Fill.Width -eq 312) 'Exhaustion ratio incorrect'
  $state.remaining_plan.working_today=$false;Show-State $state
  Assert ($ui.Total.Text -eq '' -and $ui.Track.Visibility -eq 'Collapsed') 'Day off regressed'
  $state.remaining_plan.working_today=$true;$state.today_low=4;$state.remaining_plan.available=7;Show-State $state
- Assert ($ui.Total.Text -eq ' / 7 %' -and $ui.Track.Visibility -eq 'Visible') 'Refresh recovery failed'
+ Assert ($ui.Total.Text -eq ' / 11 %' -and $ui.Track.Visibility -eq 'Visible') 'Refresh recovery failed'
 }
 Write-Output 'PASS: daily used/remaining, progress, incomplete history, zero, exhaustion, days off and recovery in FR/EN.'
+
+$state.today_low=4;$state.uncertain=$false;$state.remaining_plan.total_today=13.168746336152752;$state.remaining_plan.available=9.168746336152752
+Set-Language fr
+Show-State $state
+Assert ($ui.Used.Text -eq '4 %' -and $ui.Total.Text -eq ' / 13,17 %') 'Reported daily total incorrect'
+Assert ([Math]::Abs($ui.Fill.Width-312*4/13.168746336152752) -lt 0.001) 'Reported daily progress incorrect'

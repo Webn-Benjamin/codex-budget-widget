@@ -1,5 +1,5 @@
 ﻿$script:english = @{
- "Aujourd’hui · utilisé / restant"="Today · used / remaining"
+ "Aujourd’hui · utilisé / budget"="Today · used / budget"
  "Consommation minimale observée aujourd’hui ; le relevé du début de journée manque."="Minimum usage observed today; the start-of-day reading is missing."
  "{0} % restants ÷ {1} jours travaillés ≈ {2} %"="{0}% left ÷ {1} working days ≈ {2}%"
  "Quota réel restant réparti sur les jours travaillés avant le reset"="Actual remaining quota divided across working days before reset"

@@ -5,6 +5,31 @@ from budget import calculate, remaining_plan
 
 Z=ZoneInfo('Europe/Paris')
 class RemainingPlanTests(unittest.TestCase):
+    def test_reported_87_remaining_and_four_used_today(self):
+        now = datetime(2026, 9, 24, 10, 20, tzinfo=Z)
+        reset = datetime(2026, 9, 30, 21, 50, 50, tzinfo=Z)
+        midnight = now.replace(hour=0, minute=0)
+        rows = [dict(account='a', at=midnight.timestamp(), reset=reset.timestamp(), used=9),
+                dict(account='a', at=now.timestamp(), reset=reset.timestamp(), used=13)]
+        state = calculate(rows, list(range(7)), Z)
+        plan = state['remaining_plan']
+        equivalents = 6 + (21 * 3600 + 50 * 60 + 50) / 86400
+        self.assertEqual(state['remaining'], 87)
+        self.assertEqual((state['today_low'], state['today_high']), (4, 4))
+        self.assertAlmostEqual(plan['day_equivalents'], equivalents)
+        self.assertAlmostEqual(plan['total_today'], 91 / equivalents)
+        self.assertAlmostEqual(plan['available'], 9.168746336152752)
+
+    def test_tuesday_reset_changes_budget_and_excludes_wednesday(self):
+        now = datetime(2026, 9, 24, 10, 20, tzinfo=Z)
+        reset = datetime(2026, 9, 29, 21, 50, 50, tzinfo=Z)
+        plan = remaining_plan(now, reset, list(range(7)), 87, today_used=4)
+        equivalents = 5 + (21 * 3600 + 50 * 60 + 50) / 86400
+        self.assertEqual(plan['days'], 6)
+        self.assertAlmostEqual(plan['available'], 91 / equivalents - 4)
+        without_wednesday = remaining_plan(now, reset, [0, 1, 3, 4, 5, 6], 87, today_used=4)
+        self.assertEqual(plan, without_wednesday)
+
     def test_reported_33_percent_wednesday(self):
         now=datetime(2026,9,16,9,tzinfo=Z);reset=datetime(2026,9,19,10,38,tzinfo=Z)
         r=remaining_plan(now,reset,[0,1,2,3,4,6],33,16)
